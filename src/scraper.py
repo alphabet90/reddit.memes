@@ -1,6 +1,5 @@
 import logging
 import time
-from typing import Callable
 from urllib.parse import urlparse, urlunparse
 
 import requests
@@ -161,24 +160,12 @@ def fetch_single_post(url: str) -> list[dict]:
     return posts
 
 
-def fetch_posts(
-    subreddit: str,
-    limit: int = 100,
-    is_known: Callable[[str], bool] | None = None,
-    early_stop_hits: int = config.EARLY_STOP_CONSECUTIVE_HITS,
-) -> list[dict]:
-    """Fetch up to `limit` posts from r/subreddit.
-
-    `is_known` is a membership predicate (typically a Bloom filter lookup).
-    We require `early_stop_hits` consecutive known posts before aborting
-    pagination; this absorbs the Bloom filter's false-positive rate so a
-    stray collision never cuts a run short.
-    """
+def fetch_posts(subreddit: str, limit: int = 100) -> list[dict]:
+    """Fetch up to `limit` posts from r/subreddit via forward pagination."""
     session = _make_session()
     url = f"{config.REDDIT_BASE_URL}/r/{subreddit}/.json"
     posts: list[dict] = []
     after: str | None = None
-    consecutive_known = 0
 
     while len(posts) < limit:
         page_size = min(25, limit - len(posts))
@@ -197,27 +184,13 @@ def fetch_posts(
         if not children:
             break
 
-        stop_early = False
         for child in children:
             if child.get("kind") != "t3":
                 continue
-            post = child["data"]
-            post_name = post.get("name", "")
-            if is_known and is_known(post_name):
-                consecutive_known += 1
-                if consecutive_known >= early_stop_hits:
-                    logger.info(
-                        "Early-stop: %d consecutive already-processed posts (last: %s)",
-                        consecutive_known, post_name,
-                    )
-                    stop_early = True
-                    break
-                continue
-            consecutive_known = 0
-            posts.append(post)
+            posts.append(child["data"])
 
         after = data.get("data", {}).get("after")
-        if stop_early or not after:
+        if not after:
             break
 
     logger.info("Fetched %d posts from r/%s", len(posts), subreddit)

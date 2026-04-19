@@ -61,17 +61,15 @@ def run(
         logger.info("Loading posts from file: %s", from_file)
         posts = _load_posts_from_file(from_file)
     else:
-        posts = fetch_posts(
-            subreddit,
-            limit=limit,
-            is_known=tracker.is_processed,
-        )
+        posts = fetch_posts(subreddit, limit=limit)
 
     all_urls: list[str] = []
     seen_in_run: set[str] = set()
 
     for post in posts:
         post_id = post["name"]
+        if tracker.is_processed(post_id):
+            continue
 
         if min_comment_upvotes > 0:
             for url in fetch_comment_images(post, min_comment_upvotes):
