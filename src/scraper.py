@@ -51,6 +51,34 @@ def _clean_url(url: str) -> str:
     return urlunparse(parsed._replace(query="", fragment=""))
 
 
+def extract_image_urls(post: dict) -> list[str]:
+    urls = []
+    direct_url = post.get("url", "")
+    parsed = urlparse(direct_url)
+
+    if parsed.netloc in config.IMAGE_HOSTS:
+        ext = "." + direct_url.rsplit(".", 1)[-1].lower().split("?")[0] if "." in direct_url else ""
+        if ext in config.SUPPORTED_EXTENSIONS:
+            urls.append(_clean_url(direct_url))
+
+    preview = post.get("preview", {})
+    for img in preview.get("images", []):
+        src_url = img.get("source", {}).get("url", "")
+        if src_url:
+            cleaned = _clean_url(src_url)
+            ext = "." + cleaned.rsplit(".", 1)[-1].lower() if "." in cleaned else ""
+            if ext in config.SUPPORTED_EXTENSIONS:
+                urls.append(cleaned)
+
+    for item in post.get("media_metadata", {}).values():
+        if item.get("e") == "Image":
+            u = item.get("s", {}).get("u", "")
+            if u:
+                urls.append(_clean_url(u))
+
+    return list(dict.fromkeys(urls))
+
+
 def extract_image_urls_from_comment(comment: dict) -> list[str]:
     urls = []
     media_metadata = comment.get("media_metadata", {})
