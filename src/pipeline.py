@@ -8,7 +8,7 @@ import config
 from src.classifier import classify_batch
 from src.downloader import download_batch
 from src.saver import save_and_commit_batch
-from src.scraper import extract_image_urls, fetch_posts
+from src.scraper import extract_image_urls, fetch_posts, fetch_single_post
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +110,7 @@ def run(
     batch_size: int = 10,
     dry_run: bool = False,
     from_file: Path | None = None,
+    post_url: str | None = None,
 ) -> None:
     state = StateManager(config.STATE_FILE)
     state.load()
@@ -117,7 +118,9 @@ def run(
 
     logger.info("Starting pipeline: r/%s limit=%d batch=%d dry_run=%s", subreddit, limit, batch_size, dry_run)
 
-    if from_file:
+    if post_url:
+        posts = fetch_single_post(post_url)
+    elif from_file:
         logger.info("Loading posts from file: %s", from_file)
         posts = _load_posts_from_file(from_file)
     else:
