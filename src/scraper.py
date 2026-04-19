@@ -80,6 +80,44 @@ def extract_image_urls(post: dict) -> list[str]:
     return list(dict.fromkeys(urls))
 
 
+def resolve_share_url(url: str) -> str:
+    session = _make_session()
+    try:
+        resp = session.head(url, allow_redirects=True, timeout=15)
+        return resp.url
+    except requests.RequestException as e:
+        raise RuntimeError(f"Could not resolve share URL {url}: {e}") from e
+
+
+def fetch_single_post(url: str) -> list[dict]:
+    if "/s/" in urlparse(url).path:
+        logger.info("Resolving Reddit share link: %s", url)
+        url = resolve_share_url(url)
+        logger.info("Resolved to: %s", url)
+
+    parsed = urlparse(url)
+    if "/comments/" not in parsed.path:
+        raise ValueError(f"URL does not look like a Reddit post (missing /comments/): {url}")
+
+    canonical = urlunparse(parsed._replace(netloc="old.reddit.com", scheme="https", query="", fragment=""))
+    if not canonical.endswith(".json"):
+        canonical = canonical.rstrip("/") + "/.json"
+
+    logger.info("Fetching single post: %s", canonical)
+    session = _make_session()
+    data = _get(canonical, session)
+
+    listing = data[0] if isinstance(data, list) else data
+    children = listing.get("data", {}).get("children", [])
+    posts = [c["data"] for c in children if c.get("kind") == "t3"]
+
+    if not posts:
+        raise RuntimeError(f"No post data found at {canonical}")
+
+    logger.info("Fetched post: %r", posts[0].get("title", "")[:80])
+    return posts
+
+
 def fetch_posts(
     subreddit: str,
     limit: int = 100,

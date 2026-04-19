@@ -15,12 +15,19 @@ def main() -> int:
     parser.add_argument("--repo-path", type=Path, default=None, help="Path to git repo (default: current dir)")
     parser.add_argument("--dry-run", action="store_true", help="Classify without saving or committing")
     parser.add_argument("--reset-state", action="store_true", help="Clear state.json and reprocess everything")
-    parser.add_argument(
+    source_group = parser.add_mutually_exclusive_group()
+    source_group.add_argument(
         "--from-file",
         type=Path,
         default=None,
         metavar="JSON_FILE",
         help="Load posts from a saved Reddit JSON file instead of fetching from Reddit (useful for testing)",
+    )
+    source_group.add_argument(
+        "--post-url",
+        default=None,
+        metavar="URL",
+        help="Scrape a single Reddit post by URL (supports share links like reddit.com/r/x/s/XXXX)",
     )
     parser.add_argument(
         "--log-level",
@@ -50,6 +57,7 @@ def main() -> int:
         batch_size=args.batch_size,
         dry_run=args.dry_run,
         from_file=args.from_file,
+        post_url=args.post_url,
     )
     return 0
 
