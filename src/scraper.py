@@ -43,7 +43,13 @@ def _get(url: str, session: requests.Session, params: dict = None) -> dict:
 
 
 def _clean_url(url: str) -> str:
+    from urllib.parse import parse_qs, urlencode
     parsed = urlparse(url)
+    if parsed.netloc == "preview.redd.it":
+        params = parse_qs(parsed.query, keep_blank_values=False)
+        sig = params.get("s", [""])[0]
+        new_query = urlencode({"s": sig}) if sig else ""
+        return urlunparse(parsed._replace(query=new_query, fragment=""))
     return urlunparse(parsed._replace(query="", fragment=""))
 
 
