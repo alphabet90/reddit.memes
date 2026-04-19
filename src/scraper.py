@@ -63,9 +63,12 @@ def extract_image_urls_from_comment(comment: dict) -> list[str]:
         cleaned = _clean_url(u)
         parsed = urlparse(cleaned)
         if parsed.netloc not in config.IMAGE_HOSTS:
+            logger.debug("Skipping image (host not whitelisted): %s", parsed.netloc)
             continue
         ext = "." + parsed.path.rsplit(".", 1)[-1].lower() if "." in parsed.path else ""
         if ext not in config.SUPPORTED_EXTENSIONS:
+            filename = parsed.path.rsplit("/", 1)[-1]
+            logger.debug("Skipping image (unsupported extension %r): %s", ext, filename)
             continue
         urls.append(cleaned)
     return list(dict.fromkeys(urls))
