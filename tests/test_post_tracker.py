@@ -14,24 +14,14 @@ def test_mark_and_check(tmp_path: Path):
     assert tracker.is_processed("t3_abc")
 
 
-def test_cursor_round_trip_across_sessions(tmp_path: Path):
+def test_bloom_survives_reopen(tmp_path: Path):
     path = tmp_path / "t.bloom"
     tracker = PostTracker(path, capacity=1000)
     tracker.mark_processed("t3_xyz")
-    tracker.cursor = "t3_xyz"
     tracker.flush()
 
     reopened = PostTracker(path, capacity=1000)
-    assert reopened.cursor == "t3_xyz"
     assert reopened.is_processed("t3_xyz")
-
-
-def test_cursor_clear(tmp_path: Path):
-    tracker = PostTracker(tmp_path / "t.bloom", capacity=1000)
-    tracker.cursor = "t3_abc"
-    assert tracker.cursor == "t3_abc"
-    tracker.cursor = None
-    assert tracker.cursor is None
 
 
 def test_corrupt_file_rebuilds_fresh(tmp_path: Path):
@@ -56,7 +46,6 @@ def test_migrate_from_state_json(tmp_path: Path):
             "https://i.redd.it/one.png": {"status": "saved"},
             "https://i.redd.it/two.png": {"status": "not_meme"},
         },
-        "newest_post_fullname": "t3_c",
     }
     state_file.write_text(json.dumps(legacy))
 
@@ -67,13 +56,11 @@ def test_migrate_from_state_json(tmp_path: Path):
     assert tracker.is_processed("t3_a")
     assert tracker.is_processed("t3_b")
     assert tracker.is_processed("https://i.redd.it/one.png")
-    assert tracker.cursor == "t3_c"
 
 
 def test_migrate_from_missing_state_is_noop(tmp_path: Path):
     tracker = PostTracker(tmp_path / "t.bloom", capacity=1000)
     assert tracker.migrate_from_state_json(tmp_path / "missing.json") == 0
-    assert tracker.cursor is None
 
 
 def test_len_reflects_inserts(tmp_path: Path):

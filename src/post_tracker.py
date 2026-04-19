@@ -1,9 +1,7 @@
 """Bloom-filter–backed tracker for processed Reddit post IDs and image URLs.
 
 Replaces the previous `state.json` lookup entirely. The on-disk representation
-is a single binary Bloom filter file. The pagination cursor
-(`newest_post_fullname`) lives in the filter's metadata header so we still
-have a single state artifact.
+is a single binary Bloom filter file.
 """
 
 from __future__ import annotations
@@ -15,8 +13,6 @@ from pathlib import Path
 from src.bloom import BloomFilter, BloomFilterError
 
 logger = logging.getLogger(__name__)
-
-_CURSOR_KEY = "newest_post_fullname"
 
 
 class PostTracker:
@@ -62,19 +58,6 @@ class PostTracker:
     def __len__(self) -> int:
         return len(self._bloom)
 
-    # ---------------------------------------------------------------- cursor
-
-    @property
-    def cursor(self) -> str | None:
-        return self._bloom.metadata.get(_CURSOR_KEY)
-
-    @cursor.setter
-    def cursor(self, value: str | None) -> None:
-        if value is None:
-            self._bloom.metadata.pop(_CURSOR_KEY, None)
-        else:
-            self._bloom.metadata[_CURSOR_KEY] = value
-
     # ------------------------------------------------------------ persistence
 
     def flush(self) -> None:
@@ -102,10 +85,6 @@ class PostTracker:
         for url in data.get("processed_urls", {}):
             self._bloom.add(url)
             imported += 1
-
-        cursor = data.get("newest_post_fullname")
-        if cursor and self.cursor is None:
-            self.cursor = cursor
 
         logger.info("Migrated %d items from %s into Bloom filter", imported, state_file.name)
         return imported

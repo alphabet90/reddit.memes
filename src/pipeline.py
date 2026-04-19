@@ -65,17 +65,13 @@ def run(
             subreddit,
             limit=limit,
             is_known=tracker.is_processed,
-            before_fullname=tracker.cursor,
         )
 
     all_urls: list[str] = []
     seen_in_run: set[str] = set()
-    newest_seen_fullname: str | None = None
 
-    for i, post in enumerate(posts):
+    for post in posts:
         post_id = post["name"]
-        if i == 0:
-            newest_seen_fullname = post_id
 
         if min_comment_upvotes > 0:
             for url in fetch_comment_images(post, min_comment_upvotes):
@@ -87,9 +83,6 @@ def run(
         tracker.mark_processed(post_id)
 
     logger.info("Fetched %d posts — %d new image URLs to process", len(posts), len(all_urls))
-
-    if newest_seen_fullname:
-        tracker.cursor = newest_seen_fullname
 
     if not all_urls:
         tracker.flush()

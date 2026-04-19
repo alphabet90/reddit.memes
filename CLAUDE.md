@@ -38,7 +38,7 @@ The pipeline is orchestrated by `src/pipeline.py` and flows through four stages:
 
 4. **Save & Commit** (`src/saver.py`) — Copies confirmed memes to `memes/{category}/{slug}{ext}`, runs `git add` + `git commit` per batch. Commit messages summarize the batch (e.g., `Add 5 memes from r/argentina batch 1 [simpsons(2), pepe(3)]`).
 
-**State management**: `src/post_tracker.py::PostTracker` persists processed post IDs and image URLs in a Bloom filter file (`processed.bloom`) for O(1) membership tests. The pagination cursor (`newest_post_fullname`) lives in the filter's metadata header. The underlying reusable filter lives in `src/bloom.py`. On first run after upgrading, a legacy `state.json` is automatically migrated into the Bloom filter and removed.
+**State management**: `src/post_tracker.py::PostTracker` persists processed post IDs and image URLs in a Bloom filter file (`processed.bloom`) for O(1) membership tests. The underlying reusable filter lives in `src/bloom.py`. On first run after upgrading, a legacy `state.json` is automatically migrated into the Bloom filter and removed.
 
 ## Key Conventions
 
