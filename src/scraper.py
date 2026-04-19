@@ -64,7 +64,7 @@ def extract_image_urls_from_comment(comment: dict) -> list[str]:
         parsed = urlparse(cleaned)
         if parsed.netloc not in config.IMAGE_HOSTS:
             continue
-        ext = "." + cleaned.rsplit(".", 1)[-1].lower() if "." in cleaned else ""
+        ext = "." + parsed.path.rsplit(".", 1)[-1].lower() if "." in parsed.path else ""
         if ext not in config.SUPPORTED_EXTENSIONS:
             continue
         urls.append(cleaned)
