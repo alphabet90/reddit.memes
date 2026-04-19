@@ -8,7 +8,7 @@ import config
 from src.classifier import classify_batch
 from src.downloader import download_batch
 from src.saver import save_and_commit_batch
-from src.scraper import extract_image_urls, fetch_posts, fetch_single_post
+from src.scraper import extract_image_urls, fetch_comment_images, fetch_posts, fetch_single_post
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +111,7 @@ def run(
     dry_run: bool = False,
     from_file: Path | None = None,
     post_url: str | None = None,
+    min_comment_upvotes: int = 0,
 ) -> None:
     state = StateManager(config.STATE_FILE)
     state.load()
@@ -144,6 +145,12 @@ def run(
             if url not in processed and url not in all_urls:
                 all_urls.append(url)
                 post_urls.append(url)
+
+        if min_comment_upvotes > 0:
+            for url in fetch_comment_images(post, min_comment_upvotes):
+                if url not in processed and url not in all_urls:
+                    all_urls.append(url)
+                    post_urls.append(url)
 
         state.mark_post_processed(post_id, subreddit, len(post_urls))
 
