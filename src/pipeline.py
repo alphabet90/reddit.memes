@@ -8,7 +8,7 @@ import config
 from src.classifier import classify_batch
 from src.downloader import download_batch
 from src.saver import save_and_commit_batch
-from src.scraper import extract_image_urls, fetch_comment_images, fetch_posts, fetch_single_post
+from src.scraper import fetch_comment_images, fetch_posts, fetch_single_post
 
 logger = logging.getLogger(__name__)
 
@@ -141,11 +141,6 @@ def run(
             newest_seen_fullname = post_id
 
         post_urls = []
-        for url in extract_image_urls(post):
-            if url not in processed and url not in all_urls:
-                all_urls.append(url)
-                post_urls.append(url)
-
         if min_comment_upvotes > 0:
             for url in fetch_comment_images(post, min_comment_upvotes):
                 if url not in processed and url not in all_urls:

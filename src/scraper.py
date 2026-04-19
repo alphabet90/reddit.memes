@@ -47,39 +47,6 @@ def _clean_url(url: str) -> str:
     return urlunparse(parsed._replace(query="", fragment=""))
 
 
-def extract_image_urls(post: dict) -> list[str]:
-    urls = []
-    direct_url = post.get("url", "")
-    parsed = urlparse(direct_url)
-
-    if parsed.netloc in config.IMAGE_HOSTS:
-        ext = "." + direct_url.rsplit(".", 1)[-1].lower().split("?")[0] if "." in direct_url else ""
-        if ext in config.SUPPORTED_EXTENSIONS:
-            urls.append(_clean_url(direct_url))
-
-    preview = post.get("preview", {})
-    images = preview.get("images", [])
-    for img in images:
-        source = img.get("source", {})
-        src_url = source.get("url", "")
-        if src_url:
-            cleaned = _clean_url(src_url)
-            ext = "." + cleaned.rsplit(".", 1)[-1].lower() if "." in cleaned else ""
-            if ext in config.SUPPORTED_EXTENSIONS:
-                urls.append(cleaned)
-
-    media_metadata = post.get("media_metadata", {})
-    for item in media_metadata.values():
-        if item.get("e") == "Image":
-            s = item.get("s", {})
-            u = s.get("u", "")
-            if u:
-                cleaned = _clean_url(u)
-                urls.append(cleaned)
-
-    return list(dict.fromkeys(urls))
-
-
 def extract_image_urls_from_comment(comment: dict) -> list[str]:
     urls = []
     media_metadata = comment.get("media_metadata", {})
@@ -87,8 +54,16 @@ def extract_image_urls_from_comment(comment: dict) -> list[str]:
         if item.get("status") != "valid" or item.get("e") != "Image":
             continue
         u = item.get("s", {}).get("u", "")
-        if u:
-            urls.append(_clean_url(u))
+        if not u:
+            continue
+        cleaned = _clean_url(u)
+        parsed = urlparse(cleaned)
+        if parsed.netloc not in config.IMAGE_HOSTS:
+            continue
+        ext = "." + cleaned.rsplit(".", 1)[-1].lower() if "." in cleaned else ""
+        if ext not in config.SUPPORTED_EXTENSIONS:
+            continue
+        urls.append(cleaned)
     return list(dict.fromkeys(urls))
 
 
