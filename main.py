@@ -4,6 +4,8 @@ import logging
 import sys
 from pathlib import Path
 
+import config
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(
@@ -49,7 +51,6 @@ def main() -> int:
         datefmt="%H:%M:%S",
     )
 
-    import config
     from src.pipeline import run
 
     if args.reset_state and config.STATE_FILE.exists():
