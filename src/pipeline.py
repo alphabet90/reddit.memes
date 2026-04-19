@@ -16,7 +16,18 @@ logger = logging.getLogger(__name__)
 class StateManager:
     def __init__(self, state_file: Path):
         self._path = state_file
-        self._data: dict = {"version": 1, "processed_urls": {}}
+        self._data: dict = {
+            "version": 2,
+            "processed_post_ids": {},
+            "newest_post_fullname": None,
+            "processed_urls": {},
+        }
+
+    def _migrate(self) -> None:
+        if self._data.get("version", 1) < 2:
+            self._data.setdefault("processed_post_ids", {})
+            self._data.setdefault("newest_post_fullname", None)
+            self._data["version"] = 2
 
     def load(self) -> None:
         if self._path.exists():
@@ -24,6 +35,7 @@ class StateManager:
                 with open(self._path) as f:
                     loaded = json.load(f)
                 self._data = loaded
+                self._migrate()
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning("Could not load state file: %s — starting fresh", e)
 
@@ -33,6 +45,8 @@ class StateManager:
         with open(tmp, "w") as f:
             json.dump(self._data, f, indent=2)
         os.replace(tmp, self._path)
+
+    # --- URL-level tracking ---
 
     def is_processed(self, url: str) -> bool:
         return url in self._data["processed_urls"]
@@ -52,6 +66,27 @@ class StateManager:
 
     def mark_error(self, url: str, error: str) -> None:
         self._data["processed_urls"][url] = {"status": "error", "error": error}
+
+    # --- Post-level tracking ---
+
+    def is_post_processed(self, post_id: str) -> bool:
+        return post_id in self._data["processed_post_ids"]
+
+    def get_processed_post_ids(self) -> set[str]:
+        return set(self._data["processed_post_ids"].keys())
+
+    def mark_post_processed(self, post_id: str, subreddit: str, image_url_count: int) -> None:
+        self._data["processed_post_ids"][post_id] = {
+            "subreddit": subreddit,
+            "processed_at": datetime.now(timezone.utc).isoformat(),
+            "image_url_count": image_url_count,
+        }
+
+    def get_newest_post_fullname(self) -> str | None:
+        return self._data.get("newest_post_fullname")
+
+    def update_newest_post_fullname(self, fullname: str) -> None:
+        self._data["newest_post_fullname"] = fullname
 
 
 def _chunks(lst: list, n: int):
@@ -86,18 +121,39 @@ def run(
         logger.info("Loading posts from file: %s", from_file)
         posts = _load_posts_from_file(from_file)
     else:
-        posts = fetch_posts(subreddit, limit=limit)
+        posts = fetch_posts(
+            subreddit,
+            limit=limit,
+            known_post_ids=state.get_processed_post_ids(),
+            before_fullname=state.get_newest_post_fullname(),
+        )
 
     all_urls: list[str] = []
-    for post in posts:
+    newest_seen_fullname: str | None = None
+
+    for i, post in enumerate(posts):
+        post_id = post["name"]
+        if i == 0:
+            newest_seen_fullname = post_id
+
+        post_urls = []
         for url in extract_image_urls(post):
             if url not in processed and url not in all_urls:
                 all_urls.append(url)
+                post_urls.append(url)
 
-    logger.info("Found %d new image URLs to process (skipped %d already processed)",
-                len(all_urls), len(processed))
+        state.mark_post_processed(post_id, subreddit, len(post_urls))
+
+    logger.info(
+        "Fetched %d posts — %d new image URLs to process (%d posts already known)",
+        len(posts), len(all_urls), len(state.get_processed_post_ids()) - len(posts),
+    )
+
+    if newest_seen_fullname:
+        state.update_newest_post_fullname(newest_seen_fullname)
 
     if not all_urls:
+        state.save()
         logger.info("Nothing new to process.")
         return
 
@@ -109,7 +165,7 @@ def run(
     for batch_num, batch_urls in enumerate(_chunks(all_urls, batch_size), start=1):
         logger.info("--- Batch %d: %d URLs ---", batch_num, len(batch_urls))
 
-        downloaded = download_batch(batch_urls, tmp_dir, already_processed=set())
+        downloaded = download_batch(batch_urls, tmp_dir, already_processed=processed)
 
         for url in batch_urls:
             if not any(u == url for u, _ in downloaded):

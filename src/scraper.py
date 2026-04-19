@@ -80,15 +80,37 @@ def extract_image_urls(post: dict) -> list[str]:
     return list(dict.fromkeys(urls))
 
 
-def fetch_posts(subreddit: str, limit: int = 100) -> list[dict]:
+def fetch_posts(
+    subreddit: str,
+    limit: int = 100,
+    known_post_ids: set[str] | None = None,
+    before_fullname: str | None = None,
+) -> list[dict]:
     session = _make_session()
     url = f"{config.REDDIT_BASE_URL}/r/{subreddit}/.json"
-    posts = []
-    after = None
+    posts: list[dict] = []
+    after: str | None = None
 
+    # Fast-path: try fetching only posts newer than the last run's cursor.
+    # Falls through to normal pagination if Reddit returns nothing (anchor expired).
+    if before_fullname:
+        logger.info("Attempting fast-path fetch with before=%s", before_fullname)
+        try:
+            data = _get(url, session, params={"limit": 25, "before": before_fullname})
+            children = [c["data"] for c in data.get("data", {}).get("children", []) if c.get("kind") == "t3"]
+            if children:
+                posts.extend(children)
+                after = data.get("data", {}).get("after")
+                logger.info("Fast-path returned %d new posts", len(posts))
+            else:
+                logger.info("Fast-path returned 0 posts (anchor expired), falling back to full scan")
+        except RuntimeError as e:
+            logger.warning("Fast-path failed: %s — falling back to full scan", e)
+
+    # Normal forward-pagination (runs after fast-path if more posts needed, or as full fallback).
     while len(posts) < limit:
         page_size = min(25, limit - len(posts))
-        params = {"limit": page_size}
+        params: dict = {"limit": page_size}
         if after:
             params["after"] = after
 
@@ -103,12 +125,19 @@ def fetch_posts(subreddit: str, limit: int = 100) -> list[dict]:
         if not children:
             break
 
+        stop_early = False
         for child in children:
-            if child.get("kind") == "t3":
-                posts.append(child["data"])
+            if child.get("kind") != "t3":
+                continue
+            post = child["data"]
+            if known_post_ids and post.get("name") in known_post_ids:
+                logger.info("Early-stop: reached already-processed post %s", post.get("name"))
+                stop_early = True
+                break
+            posts.append(post)
 
         after = data.get("data", {}).get("after")
-        if not after:
+        if stop_early or not after:
             break
 
     logger.info("Fetched %d posts from r/%s", len(posts), subreddit)
