@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SUBREDDIT = os.getenv("SUBREDDIT", "argentina")
-REPO_PATH = Path(os.getenv("REPO_PATH", str(Path(__file__).parent)))
+REPO_PATH = Path(os.getenv("REPO_PATH", str(Path(__file__).resolve().parent)))
 TMP_DIR = REPO_PATH / "tmp"
 STATE_FILE = REPO_PATH / "state.json"
 
