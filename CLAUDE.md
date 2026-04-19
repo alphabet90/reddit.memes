@@ -13,24 +13,41 @@ This is a Reddit meme scraper pipeline that fetches posts from a subreddit, down
 python main.py --subreddit argentina --limit 100
 
 # Key flags
---batch-size 10        # Images per git commit (default: 10)
---dry-run              # Classify without saving or committing
---reset-bloom          # Delete processed.bloom and reprocess everything
---from-file posts.json # Load posts from saved Reddit JSON instead of fetching live
---log-level DEBUG      # Increase verbosity
+--batch-size 10                   # Images per git commit (default: 10)
+--dry-run                         # Classify without saving or committing
+--reset-bloom                     # Delete processed.bloom and reprocess everything
+--from-file posts.json            # Load posts from saved Reddit JSON instead of fetching live
+--post-url <url>                  # Fetch and process a single Reddit post by URL
+--min-comment-upvotes 10          # Minimum upvotes for comment images to be included
+--log-level DEBUG                 # Increase verbosity
 ```
 
 **Prerequisites**: `claude` CLI and `git` must be in PATH. Python 3.10+ required.
 
-**Dependencies**: `pip install -r requirements.txt` (only `requests` and `python-dotenv`).
+**Dependencies**: `pip install -r requirements.txt` (only `requests` and `python-dotenv`). Install `pytest` separately for tests.
 
 **Config**: Copy `.env.example` to `.env` and set `SUBREDDIT` and `REPO_PATH` as needed.
+
+## Testing
+
+```bash
+# Run all tests
+pytest tests/
+
+# Run a single test file
+pytest tests/test_bloom.py
+
+# Run a single test by name
+pytest tests/test_bloom.py::test_add_and_contains
+```
+
+Tests cover `BloomFilter` (`tests/test_bloom.py`, 13 tests) and `PostTracker` (`tests/test_post_tracker.py`, 8 tests). No tests exist yet for the pipeline stages (scraper, downloader, classifier, saver).
 
 ## Architecture
 
 The pipeline is orchestrated by `src/pipeline.py` and flows through four stages:
 
-1. **Scrape** (`src/scraper.py`) — Fetches posts from `old.reddit.com` JSON API with pagination and exponential backoff. Extracts image URLs from three possible locations per post: direct URL, `preview.images[]`, and `media_metadata[]` (galleries).
+1. **Scrape** (`src/scraper.py`) — Fetches posts from `old.reddit.com` JSON API with pagination and exponential backoff. Extracts image URLs from three locations per post: direct URL, `preview.images[]`, and `media_metadata[]` (galleries). Pagination stops early after 3 consecutive already-seen posts (`EARLY_STOP_CONSECUTIVE_HITS` in `config.py`). Also supports `fetch_single_post()` for a URL and `fetch_comment_images()` for images in post comments filtered by upvote count.
 
 2. **Download** (`src/downloader.py`) — Downloads images to `tmp/` using SHA1-based filenames for deduplication. Enforces a 10 MB size limit and content-type validation. Skips URLs already recorded in the Bloom filter.
 
@@ -38,7 +55,7 @@ The pipeline is orchestrated by `src/pipeline.py` and flows through four stages:
 
 4. **Save & Commit** (`src/saver.py`) — Copies confirmed memes to `memes/{category}/{slug}{ext}`, runs `git add` + `git commit` per batch. Commit messages summarize the batch (e.g., `Add 5 memes from r/argentina batch 1 [simpsons(2), pepe(3)]`).
 
-**State management**: `src/post_tracker.py::PostTracker` persists processed post IDs and image URLs in a Bloom filter file (`processed.bloom`) for O(1) membership tests. The underlying reusable filter lives in `src/bloom.py`. On first run after upgrading, a legacy `state.json` is automatically migrated into the Bloom filter and removed.
+**State management**: `src/post_tracker.py::PostTracker` persists processed post IDs and image URLs in a Bloom filter file (`processed.bloom`) for O(1) membership tests. The underlying reusable filter lives in `src/bloom.py` (uses Kirsch–Mitzenmacher double-hashing, atomic writes via `.tmp` files, stdlib-only). On first run after upgrading, a legacy `state.json` is automatically migrated into the Bloom filter and removed.
 
 ## Key Conventions
 
