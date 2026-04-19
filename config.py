@@ -1,12 +1,7 @@
-import os
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
-SUBREDDIT = os.getenv("SUBREDDIT", "argentina")
-REPO_PATH = Path(os.getenv("REPO_PATH", str(Path(__file__).parent)))
+SUBREDDIT = "argentina"
+REPO_PATH = Path.cwd()
 TMP_DIR = REPO_PATH / "tmp"
 STATE_FILE = REPO_PATH / "state.json"
 
