@@ -168,7 +168,7 @@ def run(
         return
 
     tmp_dir = config.TMP_DIR
-    tmp_dir.mkdir(exist_ok=True)
+    tmp_dir.mkdir(parents=True, exist_ok=True)
 
     total_memes = 0
 
