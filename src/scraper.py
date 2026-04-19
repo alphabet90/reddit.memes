@@ -128,31 +128,25 @@ def fetch_comment_images(post: dict, min_upvotes: int) -> list[str]:
     return deduped
 
 
+def _to_old_reddit(url: str) -> str:
+    parsed = urlparse(url)
+    return urlunparse(parsed._replace(netloc="old.reddit.com", scheme="https"))
+
+
 def resolve_share_url(url: str) -> str:
-    # Try old.reddit.com first (more permissive than www.reddit.com)
-    old_url = url.replace("www.reddit.com", "old.reddit.com").replace("reddit.com/r/", "old.reddit.com/r/")
-    if "old.reddit.com" not in old_url:
-        parsed = urlparse(url)
-        old_url = urlunparse(parsed._replace(netloc="old.reddit.com"))
+    attempt_url = _to_old_reddit(url)
+    session = _make_session()
+    try:
+        resp = session.get(attempt_url, allow_redirects=True, timeout=15, stream=True)
+        resp.close()
+        final_url = _to_old_reddit(resp.url)
+        if "/comments/" in final_url:
+            logger.info("Resolved share link to: %s", final_url)
+            return final_url
+    except requests.RequestException as e:
+        logger.warning("Could not resolve %s: %s", attempt_url, e)
 
-    for attempt_url in [old_url, url]:
-        session = requests.Session()
-        session.headers.update({
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-        })
-        try:
-            resp = session.get(attempt_url, allow_redirects=True, timeout=15, stream=True)
-            resp.close()
-            final_url = resp.url
-            if "/comments/" in final_url:
-                logger.info("Resolved share link to: %s", final_url)
-                return final_url
-        except requests.RequestException as e:
-            logger.warning("Could not resolve %s: %s", attempt_url, e)
-
-    raise RuntimeError(f"Could not resolve share URL to a post URL (tried old.reddit.com and www.reddit.com): {url}")
+    raise RuntimeError(f"Could not resolve share URL to a post URL: {url}")
 
 
 def fetch_single_post(url: str) -> list[dict]:
