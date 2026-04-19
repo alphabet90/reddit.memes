@@ -3,7 +3,11 @@ from pathlib import Path
 SUBREDDIT = "argentina"
 REPO_PATH = Path.cwd()
 TMP_DIR = REPO_PATH / "tmp"
-STATE_FILE = REPO_PATH / "state.json"
+BLOOM_FILTER_FILE = REPO_PATH / "processed.bloom"
+LEGACY_STATE_FILE = REPO_PATH / "state.json"
+BLOOM_CAPACITY = 200_000
+BLOOM_ERROR_RATE = 1e-3
+EARLY_STOP_CONSECUTIVE_HITS = 3
 
 REQUEST_DELAY = 1.0
 MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB

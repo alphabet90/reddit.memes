@@ -15,7 +15,7 @@ python main.py --subreddit argentina --limit 100
 # Key flags
 --batch-size 10        # Images per git commit (default: 10)
 --dry-run              # Classify without saving or committing
---reset-state          # Clear state.json and reprocess everything
+--reset-bloom          # Delete processed.bloom and reprocess everything
 --from-file posts.json # Load posts from saved Reddit JSON instead of fetching live
 --log-level DEBUG      # Increase verbosity
 ```
@@ -32,13 +32,13 @@ The pipeline is orchestrated by `src/pipeline.py` and flows through four stages:
 
 1. **Scrape** (`src/scraper.py`) — Fetches posts from `old.reddit.com` JSON API with pagination and exponential backoff. Extracts image URLs from three possible locations per post: direct URL, `preview.images[]`, and `media_metadata[]` (galleries).
 
-2. **Download** (`src/downloader.py`) — Downloads images to `tmp/` using SHA1-based filenames for deduplication. Enforces a 10 MB size limit and content-type validation. Skips URLs already in `state.json`.
+2. **Download** (`src/downloader.py`) — Downloads images to `tmp/` using SHA1-based filenames for deduplication. Enforces a 10 MB size limit and content-type validation. Skips URLs already recorded in the Bloom filter.
 
 3. **Classify** (`src/classifier.py`) — Spawns a `claude` subprocess per image with `--tools Read` (enabling vision) and `--dangerously-skip-permissions`. Parses JSON from stdout. Retries up to 2 times with a 120s timeout. Returns a `ClassificationResult` dataclass.
 
 4. **Save & Commit** (`src/saver.py`) — Copies confirmed memes to `memes/{category}/{slug}{ext}`, runs `git add` + `git commit` per batch. Commit messages summarize the batch (e.g., `Add 5 memes from r/argentina batch 1 [simpsons(2), pepe(3)]`).
 
-**State management**: `src/pipeline.py::StateManager` persists a `state.json` file mapping each processed URL to its outcome (`saved`, `not_meme`, `error`), enabling resumable runs without reprocessing.
+**State management**: `src/post_tracker.py::PostTracker` persists processed post IDs and image URLs in a Bloom filter file (`processed.bloom`) for O(1) membership tests. The pagination cursor (`newest_post_fullname`) lives in the filter's metadata header. The underlying reusable filter lives in `src/bloom.py`. On first run after upgrading, a legacy `state.json` is automatically migrated into the Bloom filter and removed.
 
 ## Key Conventions
 
