@@ -7,10 +7,11 @@ STATE_FILE = REPO_PATH / "state.json"
 
 REQUEST_DELAY = 1.0
 MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
-MIN_COMMENT_UPVOTES = 10
+MIN_COMMENT_UPVOTES = 0
 
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 IMAGE_HOSTS = {"i.redd.it", "i.imgur.com", "preview.redd.it", "external-preview.redd.it"}
 
 REDDIT_BASE_URL = "https://old.reddit.com"
 REDDIT_USER_AGENT = "MemeScraperBot/1.0 (educational project)"
+
