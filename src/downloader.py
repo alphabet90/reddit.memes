@@ -1,6 +1,7 @@
 import hashlib
 import logging
 from pathlib import Path
+from typing import Callable
 from urllib.parse import urlparse
 
 import requests
@@ -70,14 +71,14 @@ def download_image(url: str, tmp_dir: Path, session: requests.Session = None) ->
 def download_batch(
     urls: list[str],
     tmp_dir: Path,
-    already_processed: set[str],
+    is_processed: Callable[[str], bool] | None = None,
 ) -> list[tuple[str, Path]]:
     tmp_dir.mkdir(parents=True, exist_ok=True)
     session = requests.Session()
     results = []
 
     for url in urls:
-        if url in already_processed:
+        if is_processed and is_processed(url):
             logger.debug("Skipping already-processed: %s", url)
             continue
         path = download_image(url, tmp_dir, session)

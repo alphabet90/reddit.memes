@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Callable
 from urllib.parse import urlparse, urlunparse
 
 import requests
@@ -163,31 +164,22 @@ def fetch_single_post(url: str) -> list[dict]:
 def fetch_posts(
     subreddit: str,
     limit: int = 100,
-    known_post_ids: set[str] | None = None,
-    before_fullname: str | None = None,
+    is_known: Callable[[str], bool] | None = None,
+    early_stop_hits: int = config.EARLY_STOP_CONSECUTIVE_HITS,
 ) -> list[dict]:
+    """Fetch up to `limit` posts from r/subreddit.
+
+    `is_known` is a membership predicate (typically a Bloom filter lookup).
+    We require `early_stop_hits` consecutive known posts before aborting
+    pagination; this absorbs the Bloom filter's false-positive rate so a
+    stray collision never cuts a run short.
+    """
     session = _make_session()
     url = f"{config.REDDIT_BASE_URL}/r/{subreddit}/.json"
     posts: list[dict] = []
     after: str | None = None
+    consecutive_known = 0
 
-    # Fast-path: try fetching only posts newer than the last run's cursor.
-    # Falls through to normal pagination if Reddit returns nothing (anchor expired).
-    if before_fullname:
-        logger.info("Attempting fast-path fetch with before=%s", before_fullname)
-        try:
-            data = _get(url, session, params={"limit": 25, "before": before_fullname})
-            children = [c["data"] for c in data.get("data", {}).get("children", []) if c.get("kind") == "t3"]
-            if children:
-                posts.extend(children)
-                after = data.get("data", {}).get("after")
-                logger.info("Fast-path returned %d new posts", len(posts))
-            else:
-                logger.info("Fast-path returned 0 posts (anchor expired), falling back to full scan")
-        except RuntimeError as e:
-            logger.warning("Fast-path failed: %s — falling back to full scan", e)
-
-    # Normal forward-pagination (runs after fast-path if more posts needed, or as full fallback).
     while len(posts) < limit:
         page_size = min(25, limit - len(posts))
         params: dict = {"limit": page_size}
@@ -210,10 +202,18 @@ def fetch_posts(
             if child.get("kind") != "t3":
                 continue
             post = child["data"]
-            if known_post_ids and post.get("name") in known_post_ids:
-                logger.info("Early-stop: reached already-processed post %s", post.get("name"))
-                stop_early = True
-                break
+            post_name = post.get("name", "")
+            if is_known and is_known(post_name):
+                consecutive_known += 1
+                if consecutive_known >= early_stop_hits:
+                    logger.info(
+                        "Early-stop: %d consecutive already-processed posts (last: %s)",
+                        consecutive_known, post_name,
+                    )
+                    stop_early = True
+                    break
+                continue
+            consecutive_known = 0
             posts.append(post)
 
         after = data.get("data", {}).get("after")

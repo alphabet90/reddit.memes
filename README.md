@@ -9,7 +9,7 @@ A pipeline that scrapes Reddit posts, classifies images as memes using Claude's 
 3. **Classify** — spawns a `claude` subprocess per image with vision enabled. Returns a category or marks the image as not a meme.
 4. **Save & commit** — copies confirmed memes to `memes/{category}/{slug}{ext}` and creates a git commit per batch.
 
-State is persisted in `state.json` so interrupted runs can resume without reprocessing.
+Processed post IDs and image URLs are tracked in a **Bloom filter** (`processed.bloom`, ~360 KB fixed size) so interrupted runs resume without reprocessing. See `src/bloom.py` for the reusable implementation.
 
 ## Requirements
 
@@ -34,7 +34,7 @@ python main.py --subreddit argentina --limit 100
 # Key flags
 --batch-size 10        # Images per git commit (default: 10)
 --dry-run              # Classify without saving or committing
---reset-state          # Clear state.json and reprocess everything
+--reset-bloom          # Delete the Bloom filter and reprocess everything
 --from-file posts.json # Load posts from saved Reddit JSON instead of fetching live
 --post-url URL         # Scrape a single Reddit post by URL
 --log-level DEBUG      # Increase verbosity
@@ -58,5 +58,5 @@ memes/
   pepe/
     another-meme.png
 tmp/           # temporary downloads, not committed
-state.json     # tracks processed URLs
+processed.bloom # Bloom filter of processed post IDs + URLs (not committed)
 ```

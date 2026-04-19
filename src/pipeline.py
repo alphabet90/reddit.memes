@@ -1,92 +1,15 @@
 import json
 import logging
-import os
-from datetime import datetime, timezone
 from pathlib import Path
 
 import config
 from src.classifier import classify_batch
 from src.downloader import download_batch
+from src.post_tracker import PostTracker
 from src.saver import save_and_commit_batch
 from src.scraper import fetch_comment_images, fetch_posts, fetch_single_post
 
 logger = logging.getLogger(__name__)
-
-
-class StateManager:
-    def __init__(self, state_file: Path):
-        self._path = state_file
-        self._data: dict = {
-            "version": 2,
-            "processed_post_ids": {},
-            "newest_post_fullname": None,
-            "processed_urls": {},
-        }
-
-    def _migrate(self) -> None:
-        if self._data.get("version", 1) < 2:
-            self._data.setdefault("processed_post_ids", {})
-            self._data.setdefault("newest_post_fullname", None)
-            self._data["version"] = 2
-
-    def load(self) -> None:
-        if self._path.exists():
-            try:
-                with open(self._path) as f:
-                    loaded = json.load(f)
-                self._data = loaded
-                self._migrate()
-            except (json.JSONDecodeError, OSError) as e:
-                logger.warning("Could not load state file: %s — starting fresh", e)
-
-    def save(self) -> None:
-        self._data["last_run"] = datetime.now(timezone.utc).isoformat()
-        tmp = self._path.with_suffix(".json.tmp")
-        with open(tmp, "w") as f:
-            json.dump(self._data, f, indent=2)
-        os.replace(tmp, self._path)
-
-    # --- URL-level tracking ---
-
-    def is_processed(self, url: str) -> bool:
-        return url in self._data["processed_urls"]
-
-    def get_processed_urls(self) -> set[str]:
-        return set(self._data["processed_urls"].keys())
-
-    def mark_saved(self, url: str, category: str, filename: str) -> None:
-        self._data["processed_urls"][url] = {
-            "status": "saved",
-            "category": category,
-            "filename": filename,
-        }
-
-    def mark_not_meme(self, url: str) -> None:
-        self._data["processed_urls"][url] = {"status": "not_meme"}
-
-    def mark_error(self, url: str, error: str) -> None:
-        self._data["processed_urls"][url] = {"status": "error", "error": error}
-
-    # --- Post-level tracking ---
-
-    def is_post_processed(self, post_id: str) -> bool:
-        return post_id in self._data["processed_post_ids"]
-
-    def get_processed_post_ids(self) -> set[str]:
-        return set(self._data["processed_post_ids"].keys())
-
-    def mark_post_processed(self, post_id: str, subreddit: str, image_url_count: int) -> None:
-        self._data["processed_post_ids"][post_id] = {
-            "subreddit": subreddit,
-            "processed_at": datetime.now(timezone.utc).isoformat(),
-            "image_url_count": image_url_count,
-        }
-
-    def get_newest_post_fullname(self) -> str | None:
-        return self._data.get("newest_post_fullname")
-
-    def update_newest_post_fullname(self, fullname: str) -> None:
-        self._data["newest_post_fullname"] = fullname
 
 
 def _chunks(lst: list, n: int):
@@ -103,6 +26,21 @@ def _load_posts_from_file(json_file: Path) -> list[dict]:
     return [c["data"] for c in children if c.get("kind") == "t3"]
 
 
+def _build_tracker() -> PostTracker:
+    tracker = PostTracker(
+        config.BLOOM_FILTER_FILE,
+        capacity=config.BLOOM_CAPACITY,
+        error_rate=config.BLOOM_ERROR_RATE,
+    )
+    if not config.BLOOM_FILTER_FILE.exists() and config.LEGACY_STATE_FILE.exists():
+        imported = tracker.migrate_from_state_json(config.LEGACY_STATE_FILE)
+        if imported:
+            tracker.flush()
+            config.LEGACY_STATE_FILE.unlink()
+            logger.info("Removed legacy %s after migration", config.LEGACY_STATE_FILE.name)
+    return tracker
+
+
 def run(
     subreddit: str = config.SUBREDDIT,
     limit: int = 100,
@@ -113,9 +51,7 @@ def run(
     post_url: str | None = None,
     min_comment_upvotes: int = 0,
 ) -> None:
-    state = StateManager(config.STATE_FILE)
-    state.load()
-    processed = state.get_processed_urls()
+    tracker = _build_tracker()
 
     logger.info("Starting pipeline: r/%s limit=%d batch=%d dry_run=%s", subreddit, limit, batch_size, dry_run)
 
@@ -128,37 +64,28 @@ def run(
         posts = fetch_posts(
             subreddit,
             limit=limit,
-            known_post_ids=state.get_processed_post_ids(),
-            before_fullname=state.get_newest_post_fullname(),
+            is_known=tracker.is_processed,
         )
 
     all_urls: list[str] = []
-    newest_seen_fullname: str | None = None
+    seen_in_run: set[str] = set()
 
-    for i, post in enumerate(posts):
+    for post in posts:
         post_id = post["name"]
-        if i == 0:
-            newest_seen_fullname = post_id
 
-        post_urls = []
         if min_comment_upvotes > 0:
             for url in fetch_comment_images(post, min_comment_upvotes):
-                if url not in processed and url not in all_urls:
-                    all_urls.append(url)
-                    post_urls.append(url)
+                if url in seen_in_run or tracker.is_processed(url):
+                    continue
+                seen_in_run.add(url)
+                all_urls.append(url)
 
-        state.mark_post_processed(post_id, subreddit, len(post_urls))
+        tracker.mark_processed(post_id)
 
-    logger.info(
-        "Fetched %d posts — %d new image URLs to process (%d posts already known)",
-        len(posts), len(all_urls), len(state.get_processed_post_ids()) - len(posts),
-    )
-
-    if newest_seen_fullname:
-        state.update_newest_post_fullname(newest_seen_fullname)
+    logger.info("Fetched %d posts — %d new image URLs to process", len(posts), len(all_urls))
 
     if not all_urls:
-        state.save()
+        tracker.flush()
         logger.info("Nothing new to process.")
         return
 
@@ -170,12 +97,12 @@ def run(
     for batch_num, batch_urls in enumerate(_chunks(all_urls, batch_size), start=1):
         logger.info("--- Batch %d: %d URLs ---", batch_num, len(batch_urls))
 
-        downloaded = download_batch(batch_urls, tmp_dir, already_processed=processed)
+        downloaded = download_batch(batch_urls, tmp_dir, is_processed=tracker.is_processed)
 
         for url in batch_urls:
             if not any(u == url for u, _ in downloaded):
-                state.mark_error(url, "download_failed")
-        state.save()
+                tracker.mark_processed(url)
+        tracker.flush()
 
         if not downloaded:
             continue
@@ -184,30 +111,28 @@ def run(
 
         meme_items: list = []
         for result in results:
-            if result.error:
-                state.mark_error(result.url, result.error)
-            elif not result.is_meme:
-                state.mark_not_meme(result.url)
-            else:
+            if result.is_meme and not result.error:
                 meme_items.append(result)
-            state.save()
+            else:
+                tracker.mark_processed(result.url)
+        tracker.flush()
 
         if meme_items and not dry_run:
-            items_with_paths = []
             url_to_path = dict(downloaded)
-            for result in meme_items:
-                path = url_to_path.get(result.url)
-                if path:
-                    items_with_paths.append((result, path))
+            items_with_paths = [
+                (result, url_to_path[result.url])
+                for result in meme_items
+                if result.url in url_to_path
+            ]
 
             saved = save_and_commit_batch(items_with_paths, repo_path, batch_num, subreddit)
 
-            for result, saved_path in zip(
-                [r for r, _ in items_with_paths], saved
-            ):
-                state.mark_saved(result.url, result.category, str(saved_path.relative_to(repo_path)))
+            for result, _ in items_with_paths:
+                tracker.mark_processed(result.url)
                 total_memes += 1
-            state.save()
+            tracker.flush()
+
+            del saved
 
         elif meme_items and dry_run:
             for result in meme_items:

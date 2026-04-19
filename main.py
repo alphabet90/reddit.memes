@@ -16,7 +16,11 @@ def main() -> int:
     parser.add_argument("--batch-size", type=int, default=10, help="Images per git commit batch (default: 10)")
     parser.add_argument("--repo-path", type=Path, default=None, help="Path to git repo (default: current dir)")
     parser.add_argument("--dry-run", action="store_true", help="Classify without saving or committing")
-    parser.add_argument("--reset-state", action="store_true", help="Clear state.json and reprocess everything")
+    parser.add_argument(
+        "--reset-bloom",
+        action="store_true",
+        help="Delete the Bloom filter and reprocess every post from scratch",
+    )
     source_group = parser.add_mutually_exclusive_group()
     source_group.add_argument(
         "--from-file",
@@ -53,9 +57,14 @@ def main() -> int:
 
     from src.pipeline import run
 
-    if args.reset_state and config.STATE_FILE.exists():
-        config.STATE_FILE.unlink()
-        logging.getLogger(__name__).info("State reset.")
+    if args.reset_bloom:
+        removed = []
+        for path in (config.BLOOM_FILTER_FILE, config.LEGACY_STATE_FILE):
+            if path.exists():
+                path.unlink()
+                removed.append(path.name)
+        if removed:
+            logging.getLogger(__name__).info("State reset. Removed: %s", ", ".join(removed))
 
     run(
         subreddit=args.subreddit or config.SUBREDDIT,
