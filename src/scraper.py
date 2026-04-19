@@ -128,13 +128,25 @@ def fetch_comment_images(post: dict, min_upvotes: int) -> list[str]:
     return deduped
 
 
+def _to_old_reddit(url: str) -> str:
+    parsed = urlparse(url)
+    return urlunparse(parsed._replace(netloc="old.reddit.com", scheme="https"))
+
+
 def resolve_share_url(url: str) -> str:
+    attempt_url = _to_old_reddit(url)
     session = _make_session()
     try:
-        resp = session.head(url, allow_redirects=True, timeout=15)
-        return resp.url
+        resp = session.get(attempt_url, allow_redirects=True, timeout=15, stream=True)
+        resp.close()
+        final_url = _to_old_reddit(resp.url)
+        if "/comments/" in final_url:
+            logger.info("Resolved share link to: %s", final_url)
+            return final_url
     except requests.RequestException as e:
-        raise RuntimeError(f"Could not resolve share URL {url}: {e}") from e
+        logger.warning("Could not resolve %s: %s", attempt_url, e)
+
+    raise RuntimeError(f"Could not resolve share URL to a post URL: {url}")
 
 
 def fetch_single_post(url: str) -> list[dict]:
