@@ -80,6 +80,54 @@ def extract_image_urls(post: dict) -> list[str]:
     return list(dict.fromkeys(urls))
 
 
+def extract_image_urls_from_comment(comment: dict) -> list[str]:
+    urls = []
+    media_metadata = comment.get("media_metadata", {})
+    for item in media_metadata.values():
+        if item.get("status") != "valid" or item.get("e") != "Image":
+            continue
+        u = item.get("s", {}).get("u", "")
+        if u:
+            urls.append(_clean_url(u))
+    return list(dict.fromkeys(urls))
+
+
+def _flatten_comments(children: list) -> list[dict]:
+    result = []
+    for child in children:
+        if child.get("kind") != "t1":
+            continue
+        data = child["data"]
+        result.append(data)
+        replies = data.get("replies", "")
+        if isinstance(replies, dict):
+            result.extend(_flatten_comments(replies.get("data", {}).get("children", [])))
+    return result
+
+
+def fetch_comment_images(post: dict, min_upvotes: int) -> list[str]:
+    subreddit = post["subreddit"]
+    post_id = post["id"]
+    url = f"{config.REDDIT_BASE_URL}/r/{subreddit}/comments/{post_id}/.json"
+    session = _make_session()
+    try:
+        data = _get(url, session)
+        children = data[1].get("data", {}).get("children", [])
+    except Exception as e:
+        logger.warning("Could not fetch comments for post %s: %s", post_id, e)
+        return []
+
+    comments = _flatten_comments(children)
+    urls = []
+    for comment in comments:
+        if comment.get("ups", 0) >= min_upvotes:
+            urls.extend(extract_image_urls_from_comment(comment))
+
+    deduped = list(dict.fromkeys(urls))
+    logger.info("Post %s: %d comment image(s) found with >= %d upvotes", post_id, len(deduped), min_upvotes)
+    return deduped
+
+
 def resolve_share_url(url: str) -> str:
     session = _make_session()
     try:

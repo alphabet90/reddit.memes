@@ -30,6 +30,12 @@ def main() -> int:
         help="Scrape a single Reddit post by URL (supports share links like reddit.com/r/x/s/XXXX)",
     )
     parser.add_argument(
+        "--min-comment-upvotes",
+        type=int,
+        default=config.MIN_COMMENT_UPVOTES,
+        help="Also scrape images from comments with at least this many upvotes. Set to 0 to disable (default: 10).",
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
@@ -58,6 +64,7 @@ def main() -> int:
         dry_run=args.dry_run,
         from_file=args.from_file,
         post_url=args.post_url,
+        min_comment_upvotes=args.min_comment_upvotes,
     )
     return 0
 
