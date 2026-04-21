@@ -52,6 +52,7 @@ python main.py --subreddit argentina --reset-bloom --dry-run
 | Flag | Default | Description |
 |---|---|---|
 | `--batch-size N` | `10` | Number of images per git commit batch |
+| `--classify-workers N` | `4` | Number of parallel Claude subprocesses for classification |
 | `--min-comment-upvotes N` | `0` | Also scrape images from comments with at least N upvotes |
 | `--dry-run` | off | Classify without saving files or creating git commits |
 
