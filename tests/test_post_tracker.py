@@ -69,3 +69,32 @@ def test_len_reflects_inserts(tmp_path: Path):
     tracker.mark_processed("b")
     tracker.mark_processed("a")  # duplicate
     assert len(tracker) == 2
+
+
+def test_content_hash_mark_and_check(tmp_path: Path):
+    tracker = PostTracker(tmp_path / "t.bloom", capacity=1000)
+    sha1 = "a" * 40
+    assert not tracker.is_content_processed(sha1)
+    tracker.mark_content_processed(sha1)
+    assert tracker.is_content_processed(sha1)
+    assert not tracker.is_processed(sha1)  # raw sha1 without prefix is not marked
+
+
+def test_content_hash_namespace_isolation(tmp_path: Path):
+    tracker = PostTracker(tmp_path / "t.bloom", capacity=1000)
+    sha1 = "b" * 40
+    # Marking a URL that literally starts with "sha1:" is the same key internally
+    tracker.mark_processed(f"sha1:{sha1}")
+    assert tracker.is_content_processed(sha1)
+    # A different sha1 is not affected
+    assert not tracker.is_content_processed("c" * 40)
+
+
+def test_metadata_persists_across_flush(tmp_path: Path):
+    bloom_path = tmp_path / "t.bloom"
+    tracker = PostTracker(bloom_path, capacity=1000)
+    tracker.metadata["sha1_indexed"] = True
+    tracker.flush()
+
+    reopened = PostTracker(bloom_path, capacity=1000)
+    assert reopened.metadata.get("sha1_indexed") is True

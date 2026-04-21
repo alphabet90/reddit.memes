@@ -64,6 +64,20 @@ class PostTracker:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._bloom.save(self._path)
 
+    # --------------------------------------------------------- content hashing
+
+    _SHA1_PREFIX = "sha1:"
+
+    def is_content_processed(self, sha1_hex: str) -> bool:
+        return self.is_processed(f"{self._SHA1_PREFIX}{sha1_hex}")
+
+    def mark_content_processed(self, sha1_hex: str) -> None:
+        self.mark_processed(f"{self._SHA1_PREFIX}{sha1_hex}")
+
+    @property
+    def metadata(self) -> dict:
+        return self._bloom.metadata
+
     # ------------------------------------------------------------- migration
 
     def migrate_from_state_json(self, state_file: Path) -> int:

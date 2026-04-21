@@ -65,6 +65,11 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--rebuild-content-index",
+        action="store_true",
+        help="Reindex SHA1 hashes of all existing memes (useful after manual additions to memes/)",
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
@@ -104,6 +109,7 @@ def main() -> int:
         sort=args.sort,
         timeframe=args.timeframe,
         page=args.page,
+        rebuild_content_index=args.rebuild_content_index,
     )
     return 0
 
