@@ -14,6 +14,13 @@ def main() -> int:
     parser.add_argument("--subreddit", default=None, help="Subreddit to scrape (default: from config)")
     parser.add_argument("--limit", type=int, default=100, help="Max posts to scan (default: 100)")
     parser.add_argument("--batch-size", type=int, default=10, help="Images per git commit batch (default: 10)")
+    parser.add_argument(
+        "--classify-workers",
+        type=int,
+        default=None,
+        metavar="N",
+        help=f"Parallel Claude subprocesses for classification (default: {config.CLASSIFY_WORKERS})",
+    )
     parser.add_argument("--repo-path", type=Path, default=None, help="Path to git repo (default: current dir)")
     parser.add_argument("--dry-run", action="store_true", help="Classify without saving or committing")
     parser.add_argument(
@@ -110,6 +117,7 @@ def main() -> int:
         timeframe=args.timeframe,
         page=args.page,
         rebuild_content_index=args.rebuild_content_index,
+        classify_workers=args.classify_workers,
     )
     return 0
 
