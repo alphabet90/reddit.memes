@@ -160,20 +160,95 @@ def fetch_single_post(url: str) -> list[dict]:
     return posts
 
 
-def fetch_posts(subreddit: str, limit: int = 100) -> list[dict]:
+def _build_feed_url(subreddit: str, sort: str) -> str:
+    if sort == "new":
+        return f"{config.REDDIT_BASE_URL}/r/{subreddit}/new/.json"
+    if sort == "top":
+        return f"{config.REDDIT_BASE_URL}/r/{subreddit}/top/.json"
+    return f"{config.REDDIT_BASE_URL}/r/{subreddit}/.json"
+
+
+def _navigate_to_page(
+    url: str,
+    session: requests.Session,
+    sort: str,
+    timeframe: str,
+    target_page: int,
+) -> tuple[str | None, int]:
+    """Traverse pages 1..target_page-1 to find the after cursor for page target_page.
+
+    Returns (after_cursor, count_seen). Raises RuntimeError if the subreddit
+    runs out of pages before target_page is reached.
+    """
+    if target_page == 1:
+        return None, 0
+
+    after: str | None = None
+    count: int = 0
+    for p in range(1, target_page):
+        params: dict = {"limit": 25}
+        if after:
+            params["after"] = after
+        if count:
+            params["count"] = count
+        if sort == "top":
+            params["sort"] = "top"
+            params["t"] = timeframe
+        logger.info("Navigating to page %d/%d (after=%s)", p, target_page - 1, after)
+        data = _get(url, session, params=params)
+        children = data.get("data", {}).get("children", [])
+        if not children:
+            raise RuntimeError(
+                f"Subreddit has fewer than {target_page} pages; stopped at page {p}"
+            )
+        after = data.get("data", {}).get("after")
+        if not after:
+            raise RuntimeError(
+                f"Subreddit has fewer than {target_page} pages; no cursor after page {p}"
+            )
+        count += len(children)
+    return after, count
+
+
+def fetch_posts(
+    subreddit: str,
+    limit: int = 100,
+    sort: str = "hot",
+    timeframe: str = "day",
+    page: int = 1,
+) -> list[dict]:
     """Fetch up to `limit` posts from r/subreddit via forward pagination."""
+    if page < 1:
+        raise ValueError(f"page must be >= 1, got {page}")
+
     session = _make_session()
-    url = f"{config.REDDIT_BASE_URL}/r/{subreddit}/.json"
+    url = _build_feed_url(subreddit, sort)
     posts: list[dict] = []
     after: str | None = None
+    count: int = 0
+
+    if page > 1:
+        try:
+            after, count = _navigate_to_page(url, session, sort, timeframe, page)
+        except RuntimeError as e:
+            logger.warning("Cannot reach page %d: %s", page, e)
+            return []
 
     while len(posts) < limit:
         page_size = min(25, limit - len(posts))
         params: dict = {"limit": page_size}
         if after:
             params["after"] = after
+        if count:
+            params["count"] = count
+        if sort == "top":
+            params["sort"] = "top"
+            params["t"] = timeframe
 
-        logger.info("Fetching r/%s page (after=%s, collected=%d/%d)", subreddit, after, len(posts), limit)
+        logger.info(
+            "Fetching r/%s [sort=%s page=%d] (after=%s, collected=%d/%d)",
+            subreddit, sort, page, after, len(posts), limit,
+        )
         try:
             data = _get(url, session, params=params)
         except RuntimeError as e:
@@ -189,6 +264,7 @@ def fetch_posts(subreddit: str, limit: int = 100) -> list[dict]:
                 continue
             posts.append(child["data"])
 
+        count += len(children)
         after = data.get("data", {}).get("after")
         if not after:
             break

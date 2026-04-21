@@ -50,10 +50,16 @@ def run(
     from_file: Path | None = None,
     post_url: str | None = None,
     min_comment_upvotes: int = 0,
+    sort: str = "hot",
+    timeframe: str = "day",
+    page: int = 1,
 ) -> None:
     tracker = _build_tracker()
 
-    logger.info("Starting pipeline: r/%s limit=%d batch=%d dry_run=%s", subreddit, limit, batch_size, dry_run)
+    logger.info(
+        "Starting pipeline: r/%s limit=%d sort=%s timeframe=%s page=%d batch=%d dry_run=%s",
+        subreddit, limit, sort, timeframe, page, batch_size, dry_run,
+    )
 
     if post_url:
         posts = fetch_single_post(post_url)
@@ -61,7 +67,7 @@ def run(
         logger.info("Loading posts from file: %s", from_file)
         posts = _load_posts_from_file(from_file)
     else:
-        posts = fetch_posts(subreddit, limit=limit)
+        posts = fetch_posts(subreddit, limit=limit, sort=sort, timeframe=timeframe, page=page)
 
     all_urls: list[str] = []
     seen_in_run: set[str] = set()

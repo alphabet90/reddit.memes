@@ -42,12 +42,38 @@ def main() -> int:
         help="Also scrape images from comments with at least this many upvotes. Set to 0 to disable (default: 10).",
     )
     parser.add_argument(
+        "--sort",
+        default="hot",
+        choices=["hot", "new", "top"],
+        help="Feed sort order: hot (default), new, or top",
+    )
+    parser.add_argument(
+        "--timeframe",
+        default="day",
+        choices=["hour", "day", "week", "month", "year", "all"],
+        help="Time window for --sort=top (default: day). Ignored for hot/new.",
+    )
+    parser.add_argument(
+        "--page",
+        type=int,
+        default=1,
+        metavar="N",
+        help=(
+            "Page to start collecting from (default: 1). "
+            "Pages 1..N-1 are traversed first to locate the cursor. "
+            "Incompatible with --from-file and --post-url."
+        ),
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Log verbosity (default: INFO)",
     )
     args = parser.parse_args()
+
+    if args.page != 1 and (args.from_file or args.post_url):
+        parser.error("--page cannot be used with --from-file or --post-url")
 
     logging.basicConfig(
         level=args.log_level,
@@ -75,6 +101,9 @@ def main() -> int:
         from_file=args.from_file,
         post_url=args.post_url,
         min_comment_upvotes=args.min_comment_upvotes,
+        sort=args.sort,
+        timeframe=args.timeframe,
+        page=args.page,
     )
     return 0
 
