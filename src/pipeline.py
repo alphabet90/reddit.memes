@@ -5,6 +5,7 @@ from pathlib import Path
 import config
 from src.classifier import classify_batch
 from src.downloader import download_batch
+from src.models import PostMetadata
 from src.post_tracker import PostTracker
 from src.saver import save_and_commit_batch
 from src.scraper import fetch_comment_images, fetch_posts, fetch_single_post
@@ -65,17 +66,29 @@ def run(
 
     all_urls: list[str] = []
     seen_in_run: set[str] = set()
+    url_to_meta: dict[str, PostMetadata] = {}
 
     for post in posts:
         post_id = post["name"]
         if tracker.is_processed(post_id):
             continue
 
+        meta = PostMetadata(
+            post_id=post_id,
+            title=post.get("title", ""),
+            author=post.get("author", "[deleted]"),
+            subreddit=post.get("subreddit", subreddit),
+            score=post.get("ups", post.get("score", 0)),
+            created_utc=post.get("created_utc", 0.0),
+            permalink=post.get("permalink", ""),
+        )
+
         for url in fetch_comment_images(post, min_comment_upvotes):
             if url in seen_in_run or tracker.is_processed(url):
                 continue
             seen_in_run.add(url)
             all_urls.append(url)
+            url_to_meta[url] = meta
 
         tracker.mark_processed(post_id)
 
@@ -122,7 +135,7 @@ def run(
                 if result.url in url_to_path
             ]
 
-            saved = save_and_commit_batch(items_with_paths, repo_path, batch_num, subreddit)
+            saved = save_and_commit_batch(items_with_paths, repo_path, batch_num, subreddit, url_to_meta=url_to_meta)
 
             for result, _ in items_with_paths:
                 tracker.mark_processed(result.url)
