@@ -19,6 +19,14 @@ _EXT_FROM_CONTENT_TYPE = {
 }
 
 
+def compute_file_sha1(path: Path) -> str:
+    h = hashlib.sha1()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def url_to_tmp_filename(url: str) -> str:
     digest = hashlib.sha1(url.encode()).hexdigest()[:12]
     parsed = urlparse(url)

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import config
 from src.classifier import classify_batch
-from src.downloader import download_batch
+from src.downloader import compute_file_sha1, download_batch
 from src.models import PostMetadata
 from src.post_tracker import PostTracker
 from src.saver import save_and_commit_batch
@@ -25,6 +25,25 @@ def _load_posts_from_file(json_file: Path) -> list[dict]:
         data = data[0]
     children = data.get("data", {}).get("children", [])
     return [c["data"] for c in children if c.get("kind") == "t3"]
+
+
+def _index_existing_memes(tracker: PostTracker, repo_path: Path, force: bool = False) -> None:
+    if not force and tracker.metadata.get("sha1_indexed"):
+        return
+    memes_dir = repo_path / "memes"
+    if not memes_dir.exists():
+        tracker.metadata["sha1_indexed"] = True
+        tracker.flush()
+        return
+    extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+    indexed = 0
+    for img_path in memes_dir.rglob("*"):
+        if img_path.suffix.lower() in extensions and img_path.is_file():
+            tracker.mark_content_processed(compute_file_sha1(img_path))
+            indexed += 1
+    tracker.metadata["sha1_indexed"] = True
+    tracker.flush()
+    logger.info("Content-indexed %d existing memes", indexed)
 
 
 def _build_tracker() -> PostTracker:
@@ -54,8 +73,10 @@ def run(
     sort: str = "hot",
     timeframe: str = "day",
     page: int = 1,
+    rebuild_content_index: bool = False,
 ) -> None:
     tracker = _build_tracker()
+    _index_existing_memes(tracker, repo_path, force=rebuild_content_index)
 
     logger.info(
         "Starting pipeline: r/%s limit=%d sort=%s timeframe=%s page=%d batch=%d dry_run=%s",
@@ -115,15 +136,29 @@ def run(
 
         downloaded = download_batch(batch_urls, tmp_dir, is_processed=tracker.is_processed)
 
+        # Filter content-identical images (same bytes, different URL) before classifying.
+        clean_downloaded: list[tuple[str, Path, str]] = []
+        for url, path in downloaded:
+            sha1 = compute_file_sha1(path)
+            if tracker.is_content_processed(sha1):
+                logger.info("Skipping content duplicate (sha1=%s...): %s", sha1[:8], url)
+                tracker.mark_processed(url)
+                path.unlink(missing_ok=True)
+            else:
+                clean_downloaded.append((url, path, sha1))
+
         for url in batch_urls:
             if not any(u == url for u, _ in downloaded):
                 tracker.mark_processed(url)
         tracker.flush()
 
-        if not downloaded:
+        if not clean_downloaded:
             continue
 
-        results = classify_batch(downloaded)
+        downloaded_for_classify = [(url, path) for url, path, _ in clean_downloaded]
+        results = classify_batch(downloaded_for_classify)
+
+        url_to_sha1 = {url: sha1 for url, _, sha1 in clean_downloaded}
 
         meme_items: list = []
         for result in results:
@@ -134,7 +169,7 @@ def run(
         tracker.flush()
 
         if meme_items and not dry_run:
-            url_to_path = dict(downloaded)
+            url_to_path = dict(downloaded_for_classify)
             items_with_paths = [
                 (result, url_to_path[result.url])
                 for result in meme_items
@@ -145,6 +180,8 @@ def run(
 
             for result, _ in items_with_paths:
                 tracker.mark_processed(result.url)
+                if result.url in url_to_sha1:
+                    tracker.mark_content_processed(url_to_sha1[result.url])
                 total_memes += 1
             tracker.flush()
 
@@ -154,7 +191,7 @@ def run(
             for result in meme_items:
                 logger.info("[DRY RUN] Would save: %s/%s (%s)", result.category, result.filename_slug, result.url)
 
-        for _, tmp_path in downloaded:
+        for _, tmp_path, _ in clean_downloaded:
             try:
                 tmp_path.unlink()
             except OSError:
