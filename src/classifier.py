@@ -1,8 +1,11 @@
 import json
 import logging
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
+
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -91,14 +94,28 @@ def classify_image(image_path: Path, url: str) -> ClassificationResult:
     return ClassificationResult(url=url, error="classification_failed")
 
 
-def classify_batch(items: list[tuple[str, Path]]) -> list[ClassificationResult]:
-    results = []
-    for url, path in items:
+def classify_batch(
+    items: list[tuple[str, Path]],
+    max_workers: int | None = None,
+) -> list[ClassificationResult]:
+    workers = max_workers if max_workers is not None else config.CLASSIFY_WORKERS
+
+    def _classify_one(item: tuple[str, Path]) -> ClassificationResult:
+        url, path = item
         logger.info("Classifying %s", path.name)
-        result = classify_image(path, url)
+        try:
+            result = classify_image(path, url)
+        except Exception as e:
+            logger.error("Unexpected error classifying %s: %s", path.name, e)
+            result = ClassificationResult(url=url, error=f"unexpected: {e}")
         if result.error:
             logger.warning("Classification error for %s: %s", url, result.error)
         else:
-            logger.info("  → is_meme=%s category=%r slug=%r", result.is_meme, result.category, result.filename_slug)
-        results.append(result)
-    return results
+            logger.info(
+                "  → is_meme=%s category=%r slug=%r",
+                result.is_meme, result.category, result.filename_slug,
+            )
+        return result
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        return list(executor.map(_classify_one, items))

@@ -74,6 +74,7 @@ def run(
     timeframe: str = "day",
     page: int = 1,
     rebuild_content_index: bool = False,
+    classify_workers: int | None = None,
 ) -> None:
     tracker = _build_tracker()
     _index_existing_memes(tracker, repo_path, force=rebuild_content_index)
@@ -156,7 +157,7 @@ def run(
             continue
 
         downloaded_for_classify = [(url, path) for url, path, _ in clean_downloaded]
-        results = classify_batch(downloaded_for_classify)
+        results = classify_batch(downloaded_for_classify, max_workers=classify_workers)
 
         url_to_sha1 = {url: sha1 for url, _, sha1 in clean_downloaded}
 

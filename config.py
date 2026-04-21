@@ -18,3 +18,6 @@ IMAGE_HOSTS = {"i.redd.it", "i.imgur.com", "preview.redd.it", "external-preview.
 REDDIT_BASE_URL = "https://old.reddit.com"
 REDDIT_USER_AGENT = "MemeScraperBot/1.0 (educational project)"
 
+CLASSIFY_WORKERS: int = 4   # concurrent Claude subprocesses
+DOWNLOAD_WORKERS: int = 8   # concurrent image downloads
+

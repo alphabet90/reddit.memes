@@ -1,5 +1,6 @@
 import hashlib
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable
 from urllib.parse import urlparse
@@ -80,17 +81,23 @@ def download_batch(
     urls: list[str],
     tmp_dir: Path,
     is_processed: Callable[[str], bool] | None = None,
+    max_workers: int | None = None,
 ) -> list[tuple[str, Path]]:
     tmp_dir.mkdir(parents=True, exist_ok=True)
-    session = requests.Session()
-    results = []
+    workers = max_workers if max_workers is not None else config.DOWNLOAD_WORKERS
 
+    pending = []
     for url in urls:
         if is_processed and is_processed(url):
             logger.debug("Skipping already-processed: %s", url)
-            continue
-        path = download_image(url, tmp_dir, session)
-        if path:
-            results.append((url, path))
+        else:
+            pending.append(url)
 
-    return results
+    def _download_one(url: str) -> tuple[str, Path] | None:
+        path = download_image(url, tmp_dir, requests.Session())
+        return (url, path) if path else None
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        raw = list(executor.map(_download_one, pending))
+
+    return [r for r in raw if r is not None]
