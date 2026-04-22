@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Reddit meme scraper pipeline that fetches posts from a subreddit, downloads images, classifies them as memes using the Claude Code CLI (via subprocess with vision), and saves confirmed memes into a git-tracked folder organized by category.
+This is a Reddit meme scraper pipeline that fetches posts from a subreddit, downloads images, classifies them as memes using a pluggable vision classifier (Claude Code CLI by default, or Codex CLI), and saves confirmed memes into a git-tracked folder organized by category.
 
 ## Running the Application
 
@@ -19,10 +19,11 @@ python main.py --subreddit argentina --limit 100
 --from-file posts.json            # Load posts from saved Reddit JSON instead of fetching live
 --post-url <url>                  # Fetch and process a single Reddit post by URL
 --min-comment-upvotes 10          # Minimum upvotes for comment images to be included
+--classifier codex                # Use Codex CLI instead of Claude (default: claude)
 --log-level DEBUG                 # Increase verbosity
 ```
 
-**Prerequisites**: `claude` CLI and `git` must be in PATH. Python 3.10+ required.
+**Prerequisites**: `claude` CLI (or `codex` CLI for `--classifier codex`) and `git` must be in PATH. Python 3.10+ required.
 
 **Dependencies**: `pip install -r requirements.txt` (only `requests` and `python-dotenv`). Install `pytest` separately for tests.
 
@@ -51,7 +52,7 @@ The pipeline is orchestrated by `src/pipeline.py` and flows through four stages:
 
 2. **Download** (`src/downloader.py`) — Downloads images to `tmp/` using SHA1-based filenames for deduplication. Enforces a 10 MB size limit and content-type validation. Skips URLs already recorded in the Bloom filter.
 
-3. **Classify** (`src/classifier.py`) — Spawns a `claude` subprocess per image with `--tools Read` (enabling vision) and `--dangerously-skip-permissions`. Parses JSON from stdout. Retries up to 2 times with a 120s timeout. Returns a `ClassificationResult` dataclass.
+3. **Classify** (`src/classifiers/`) — A `BaseClassifier` ABC (`src/classifiers/base.py`) defines `classify_image(path, url)` as the single abstract method; `classify_batch()` is a concrete default using `ThreadPoolExecutor`. `ClassificationResult` dataclass lives in `base.py`. `ClaudeClassifier` (default) spawns a `claude` subprocess with `--tools Read` and `--dangerously-skip-permissions`. `CodexClassifier` spawns a `codex` subprocess with `--image`. Both retry up to 2 times with a 120s timeout. Select the backend with `--classifier claude|codex` (config default: `CLASSIFIER = "claude"`).
 
 4. **Save & Commit** (`src/saver.py`) — Copies confirmed memes to `memes/{category}/{slug}{ext}`, runs `git add` + `git commit` per batch. Commit messages summarize the batch (e.g., `Add 5 memes from r/argentina batch 1 [simpsons(2), pepe(3)]`).
 
@@ -63,5 +64,6 @@ The pipeline is orchestrated by `src/pipeline.py` and flows through four stages:
 - **No async** — the pipeline is intentionally synchronous.
 - **Image hosts are whitelisted** in `config.py` (`IMAGE_HOSTS`). New sources must be added there.
 - **Slug sanitization** (`saver.py::_sanitize_slug`) keeps only alphanumerics and hyphens, max 80 chars. Filename collisions are resolved by appending `-2`, `-3`, etc.
-- **Claude classification prompt** lives in `classifier.py::_PROMPT` as a module-level constant. Edit it there to change classification behavior or output schema.
+- **Classifier prompts** live as module-level `_PROMPT` constants in each backend (`src/classifiers/claude_classifier.py`, `src/classifiers/codex_classifier.py`). Edit the relevant file to change classification behavior or output schema.
+- **Adding a new classifier**: subclass `BaseClassifier` from `src/classifiers/base.py`, implement `classify_image`, register it in `src/classifiers/__init__.py` and the `_backends` dict in `main.py`.
 - All git operations are raw `subprocess` calls — no `gitpython` or similar library.
