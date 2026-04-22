@@ -19,7 +19,13 @@ def main() -> int:
         type=int,
         default=None,
         metavar="N",
-        help=f"Parallel Claude subprocesses for classification (default: {config.CLASSIFY_WORKERS})",
+        help=f"Parallel classifier subprocesses (default: {config.CLASSIFY_WORKERS})",
+    )
+    parser.add_argument(
+        "--classifier",
+        default=config.CLASSIFIER,
+        choices=["claude", "codex"],
+        help=f"Vision classifier backend (default: {config.CLASSIFIER})",
     )
     parser.add_argument("--repo-path", type=Path, default=None, help="Path to git repo (default: current dir)")
     parser.add_argument("--dry-run", action="store_true", help="Classify without saving or committing")
@@ -94,6 +100,10 @@ def main() -> int:
     )
 
     from src.pipeline import run
+    from src.classifiers import ClaudeClassifier, CodexClassifier
+
+    _backends = {"claude": ClaudeClassifier, "codex": CodexClassifier}
+    classifier = _backends[args.classifier]()
 
     if args.reset_bloom:
         removed = []
@@ -118,6 +128,7 @@ def main() -> int:
         page=args.page,
         rebuild_content_index=args.rebuild_content_index,
         classify_workers=args.classify_workers,
+        classifier=classifier,
     )
     return 0
 

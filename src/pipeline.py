@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 
 import config
-from src.classifier import classify_batch
+from src.classifiers import BaseClassifier, ClaudeClassifier
 from src.downloader import compute_file_sha1, download_batch
 from src.models import PostMetadata
 from src.post_tracker import PostTracker
@@ -75,9 +75,11 @@ def run(
     page: int = 1,
     rebuild_content_index: bool = False,
     classify_workers: int | None = None,
+    classifier: BaseClassifier | None = None,
 ) -> None:
     tracker = _build_tracker()
     _index_existing_memes(tracker, repo_path, force=rebuild_content_index)
+    _classifier = classifier if classifier is not None else ClaudeClassifier()
 
     logger.info(
         "Starting pipeline: r/%s limit=%d sort=%s timeframe=%s page=%d batch=%d dry_run=%s",
@@ -157,7 +159,7 @@ def run(
             continue
 
         downloaded_for_classify = [(url, path) for url, path, _ in clean_downloaded]
-        results = classify_batch(downloaded_for_classify, max_workers=classify_workers)
+        results = _classifier.classify_batch(downloaded_for_classify, max_workers=classify_workers)
 
         url_to_sha1 = {url: sha1 for url, _, sha1 in clean_downloaded}
 
