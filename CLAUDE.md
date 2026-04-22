@@ -67,3 +67,4 @@ The pipeline is orchestrated by `src/pipeline.py` and flows through four stages:
 - **Classifier prompts** live as module-level `_PROMPT` constants in each backend (`src/classifiers/claude_classifier.py`, `src/classifiers/codex_classifier.py`). Edit the relevant file to change classification behavior or output schema.
 - **Adding a new classifier**: subclass `BaseClassifier` from `src/classifiers/base.py`, implement `classify_image`, register it in `src/classifiers/__init__.py` and the `_backends` dict in `main.py`.
 - All git operations are raw `subprocess` calls — no `gitpython` or similar library.
+- **CLI docs must stay in sync**: whenever a CLI flag is added, removed, or changed in `main.py`, update `docs/CLI.md` in the same commit — add the flag to the relevant Options table and, if it has meaningful behavior, add or update a dedicated section.

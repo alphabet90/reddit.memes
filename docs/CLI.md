@@ -1,6 +1,6 @@
 # CLI Reference
 
-Reddit meme scraper — fetch posts from Reddit, classify them with Claude, and save confirmed memes to a git-tracked folder.
+Reddit meme scraper — fetch posts from Reddit, classify them with a vision classifier (Claude or Codex), and save confirmed memes to a git-tracked folder.
 
 ## Synopsis
 
@@ -52,7 +52,8 @@ python main.py --subreddit argentina --reset-bloom --dry-run
 | Flag | Default | Description |
 |---|---|---|
 | `--batch-size N` | `10` | Number of images per git commit batch |
-| `--classify-workers N` | `4` | Number of parallel Claude subprocesses for classification |
+| `--classifier {claude,codex}` | `claude` | Vision classifier backend (see [Classifiers](#classifiers)) |
+| `--classify-workers N` | `4` | Number of parallel classifier subprocesses |
 | `--min-comment-upvotes N` | `0` | Also scrape images from comments with at least N upvotes |
 | `--dry-run` | off | Classify without saving files or creating git commits |
 
@@ -77,6 +78,36 @@ These flags are mutually exclusive with each other, and incompatible with `--pag
 |---|---|---|
 | `--repo-path PATH` | current directory | Path to the git repository where memes are saved |
 | `--log-level {DEBUG,INFO,WARNING,ERROR}` | `INFO` | Log verbosity |
+
+---
+
+## Classifiers
+
+The `--classifier` flag selects which vision-capable CLI tool performs meme classification. Both backends use the same JSON output schema and retry logic (2 attempts, 120 s timeout each).
+
+### `claude` (default)
+
+Spawns the [Claude Code CLI](https://claude.ai/code) via subprocess with `--tools Read` (enables reading the image file) and `--dangerously-skip-permissions`.
+
+```bash
+python main.py --classifier claude
+```
+
+**Prerequisites**: `claude` must be in PATH and authenticated.
+
+### `codex`
+
+Spawns the [OpenAI Codex CLI](https://developers.openai.com/codex/cli/features#image-inputs) via subprocess, passing the image with `--image`.
+
+```bash
+python main.py --classifier codex
+```
+
+**Prerequisites**: `codex` must be in PATH and authenticated.
+
+### Adding a custom classifier
+
+Subclass `BaseClassifier` from `src/classifiers/base.py`, implement `classify_image(image_path, url) -> ClassificationResult`, register it in `src/classifiers/__init__.py` and add it to the `_backends` dict in `main.py`.
 
 ---
 
