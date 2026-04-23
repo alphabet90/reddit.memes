@@ -1,0 +1,11 @@
+src/main/java/com/memes/api/generated/api/AdminApi.java
+src/main/java/com/memes/api/generated/api/AdminApiDelegate.java
+src/main/java/com/memes/api/generated/api/ApiUtil.java
+src/main/java/com/memes/api/generated/api/MemesApi.java
+src/main/java/com/memes/api/generated/api/MemesApiDelegate.java
+src/main/java/com/memes/api/generated/model/CategorySummary.java
+src/main/java/com/memes/api/generated/model/ErrorResponse.java
+src/main/java/com/memes/api/generated/model/Meme.java
+src/main/java/com/memes/api/generated/model/MemePage.java
+src/main/java/com/memes/api/generated/model/ReindexResult.java
+src/main/java/com/memes/api/generated/model/Stats.java

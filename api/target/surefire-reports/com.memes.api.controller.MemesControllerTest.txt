@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.memes.api.controller.MemesControllerTest
+-------------------------------------------------------------------------------
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.802 s -- in com.memes.api.controller.MemesControllerTest

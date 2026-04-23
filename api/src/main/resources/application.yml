@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: memes-api
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+
+  cache:
+    type: redis
+
+server:
+  port: ${PORT:8080}
+
+memes:
+  root: ${MEMES_ROOT:../memes}
+  db-path: ${MEMES_DB_PATH:./memes.db}
+  admin-api-key: ${ADMIN_API_KEY}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: alpha
+
+logging:
+  level:
+    com.memes.api: INFO
