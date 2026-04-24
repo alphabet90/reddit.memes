@@ -2,6 +2,19 @@ spring:
   application:
     name: memes-api
 
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/memesdb}
+    username: ${DB_USER:memes}
+    password: ${DB_PASSWORD:memes}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: pg-pool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -12,13 +25,25 @@ spring:
   cache:
     type: redis
 
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
 server:
   port: ${PORT:8080}
+  shutdown: graceful
 
 memes:
   root: ${MEMES_ROOT:../memes}
-  db-path: ${MEMES_DB_PATH:./memes.db}
   admin-api-key: ${ADMIN_API_KEY}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
 
 springdoc:
   api-docs:

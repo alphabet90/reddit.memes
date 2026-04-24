@@ -6,10 +6,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-/**
- * Executes SQLite DDL at startup. Uses JdbcTemplate.execute() per statement
- * to avoid delimiter issues with trigger bodies that contain semicolons.
- */
 @Component
 public class DatabaseInitializer {
 
@@ -23,7 +19,7 @@ public class DatabaseInitializer {
 
     @PostConstruct
     public void init() {
-        log.info("Initializing SQLite schema");
+        log.info("Initializing PostgreSQL schema");
 
         jdbc.execute("""
             CREATE TABLE IF NOT EXISTS memes (
@@ -39,7 +35,7 @@ public class DatabaseInitializer {
                 post_url    TEXT,
                 image_path  TEXT,
                 tags        TEXT,
-                indexed_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                indexed_at  TEXT NOT NULL DEFAULT TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
                 PRIMARY KEY (slug, category)
             )""");
 
@@ -49,36 +45,18 @@ public class DatabaseInitializer {
         jdbc.execute("CREATE INDEX IF NOT EXISTS idx_memes_created   ON memes(created_at DESC)");
 
         jdbc.execute("""
-            CREATE VIRTUAL TABLE IF NOT EXISTS memes_fts USING fts5(
-                slug,
-                title,
-                description,
-                content='memes',
-                content_rowid='rowid'
-            )""");
+            ALTER TABLE memes ADD COLUMN IF NOT EXISTS search_vector tsvector
+                GENERATED ALWAYS AS (
+                    to_tsvector('english',
+                        coalesce(title,'') || ' ' ||
+                        coalesce(description,'') || ' ' ||
+                        coalesce(slug,''))
+                ) STORED""");
+
+        jdbc.execute("CREATE INDEX IF NOT EXISTS idx_memes_fts ON memes USING gin(search_vector)");
 
         jdbc.execute("""
-            CREATE TRIGGER IF NOT EXISTS memes_ai AFTER INSERT ON memes BEGIN
-                INSERT INTO memes_fts(rowid, slug, title, description)
-                VALUES (new.rowid, new.slug, new.title, new.description);
-            END""");
-
-        jdbc.execute("""
-            CREATE TRIGGER IF NOT EXISTS memes_au AFTER UPDATE ON memes BEGIN
-                INSERT INTO memes_fts(memes_fts, rowid, slug, title, description)
-                VALUES ('delete', old.rowid, old.slug, old.title, old.description);
-                INSERT INTO memes_fts(rowid, slug, title, description)
-                VALUES (new.rowid, new.slug, new.title, new.description);
-            END""");
-
-        jdbc.execute("""
-            CREATE TRIGGER IF NOT EXISTS memes_ad AFTER DELETE ON memes BEGIN
-                INSERT INTO memes_fts(memes_fts, rowid, slug, title, description)
-                VALUES ('delete', old.rowid, old.slug, old.title, old.description);
-            END""");
-
-        jdbc.execute("""
-            CREATE VIEW IF NOT EXISTS category_counts AS
+            CREATE OR REPLACE VIEW category_counts AS
                 SELECT category,
                        COUNT(*)   AS count,
                        MAX(score) AS top_score
@@ -86,6 +64,6 @@ public class DatabaseInitializer {
                 GROUP  BY category
                 ORDER  BY count DESC""");
 
-        log.info("SQLite schema ready");
+        log.info("PostgreSQL schema ready");
     }
 }
