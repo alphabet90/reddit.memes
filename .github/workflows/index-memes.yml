@@ -13,14 +13,58 @@ jobs:
     timeout-minutes: 5
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Wait for API to be ready
+        run: |
+          echo "Waiting for API to be ready..."
+          for i in {1..30}; do
+            if curl -sf "${{ secrets.API_BASE_URL }}/actuator/health" > /dev/null; then
+              echo "API is ready!"
+              break
+            fi
+            echo "Attempt $i/30 - API not ready yet, waiting 2 seconds..."
+            sleep 2
+          done
+      
       - name: Call /admin/reindex
+        id: reindex
         run: |
           response=$(curl -sf \
-            --retry 3 \
+            --retry 5 \
             --retry-delay 5 \
+            --max-time 300 \
             -X POST \
             -H "X-Api-Key: ${{ secrets.ADMIN_API_KEY }}" \
             -H "Content-Type: application/json" \
             "${{ secrets.API_BASE_URL }}/admin/reindex")
-          echo "Reindex response: $response"
-          echo "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Indexed {d[\"indexed\"]} memes in {d[\"duration_ms\"]}ms')"
+          
+          echo "Response: $response"
+          echo "response=$response" >> $GITHUB_OUTPUT
+          
+          # Parse response with jq (more robust)
+          indexed=$(echo "$response" | jq -r '.indexed // 0')
+          duration_ms=$(echo "$response" | jq -r '.duration_ms // 0')
+          
+          echo "✅ Indexed $indexed memes in ${duration_ms}ms"
+          
+          # Check for errors
+          errors=$(echo "$response" | jq -r '.errors // [] | length')
+          if [ "$errors" -gt 0 ]; then
+            echo "⚠️  $errors errors occurred during indexing"
+            echo "$response" | jq -r '.errors[]' | while read error; do
+              echo "  - $error"
+            done
+          fi
+      
+      - name: Verify reindex result
+        run: |
+          # Verificar que los memes se indexaron correctamente
+          stats=$(curl -sf "${{ secrets.API_BASE_URL }}/")
+          total_memes=$(echo "$stats" | jq -r '.total_memes // 0')
+          echo "📊 Total memes in database: $total_memes"
+          
+          if [ "$total_memes" -eq 0 ]; then
+            echo "⚠️ Warning: No memes found after reindex"
+          fi
