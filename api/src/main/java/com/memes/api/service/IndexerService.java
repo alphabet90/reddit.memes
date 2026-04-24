@@ -1,13 +1,12 @@
 package com.memes.api.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.memes.api.config.RedisConfig;
+import com.memes.api.generated.model.MemeIndexRequest;
 import com.memes.api.repository.MemeRecord;
 import com.memes.api.repository.MemeRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.yaml.snakeyaml.Yaml;
@@ -21,23 +20,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class IndexerService {
-
-    private static final Logger log = LoggerFactory.getLogger(IndexerService.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Value("${memes.root}")
     private String memesRoot;
 
     private final MemeRepository memeRepository;
     private final CacheManager cacheManager;
-
-    public IndexerService(MemeRepository memeRepository, CacheManager cacheManager) {
-        this.memeRepository = memeRepository;
-        this.cacheManager = cacheManager;
-    }
 
     public IndexResult reindex() {
         long start = System.currentTimeMillis();
@@ -51,6 +45,38 @@ public class IndexerService {
         long duration = System.currentTimeMillis() - start;
         log.info("Reindex complete: {} memes indexed in {}ms ({} errors)", indexed, duration, errors.size());
         return new IndexResult(indexed, duration, errors);
+    }
+
+    public IndexResult indexSingle(MemeIndexRequest req) {
+        long start = System.currentTimeMillis();
+
+        String category = Optional.ofNullable(req.getCategory()).orElse("");
+        String slug = Optional.ofNullable(req.getSlug()).orElse("");
+        String imagePath = Optional.ofNullable(req.getImagePath())
+            .filter(s -> !s.isBlank())
+            .orElseGet(() -> "memes/" + category + "/" + slug + ".jpg");
+
+        MemeRecord record = new MemeRecord(
+            slug,
+            category,
+            Optional.ofNullable(req.getTitle()).orElse(""),
+            req.getDescription(),
+            req.getAuthor(),
+            Optional.ofNullable(req.getSubreddit()).orElse("argentina"),
+            Optional.ofNullable(req.getScore()).orElse(0),
+            null,
+            req.getSourceUrl(),
+            req.getPostUrl(),
+            imagePath,
+            Optional.ofNullable(req.getTags()).orElse(List.of())
+        );
+
+        memeRepository.upsert(record);
+        invalidateCaches();
+
+        long duration = System.currentTimeMillis() - start;
+        log.info("Single meme indexed: {}/{} in {}ms", category, slug, duration);
+        return new IndexResult(1, duration, List.of());
     }
 
     private List<MemeRecord> scanMdxFiles(List<String> errors) {
@@ -85,7 +111,6 @@ public class IndexerService {
             return Optional.empty();
         }
 
-        // Find the closing ---
         int end = -1;
         for (int i = 1; i < lines.size(); i++) {
             if ("---".equals(lines.get(i).trim())) {
@@ -106,19 +131,16 @@ public class IndexerService {
             return Optional.empty();
         }
 
-        // Normalize image path: "./slug.jpg" → "memes/{category}/slug.jpg"
         String imagePath = normalizeImagePath(str(fm, "image"), category, mdxPath);
-
-        // tags: SnakeYAML parses YAML arrays as List<String> directly
         List<String> tags = parseTags(fm.get("tags"));
 
         return Optional.of(new MemeRecord(
             slug,
             category,
-            nullToEmpty(str(fm, "title")),
+            Optional.ofNullable(str(fm, "title")).orElse(""),
             str(fm, "description"),
             str(fm, "author"),
-            nullToEmpty(str(fm, "subreddit")),
+            Optional.ofNullable(str(fm, "subreddit")).orElse(""),
             toInt(fm.get("score")),
             str(fm, "created_at"),
             str(fm, "source_url"),
@@ -129,20 +151,19 @@ public class IndexerService {
     }
 
     private void invalidateCaches() {
-        for (String name : List.of(
-                RedisConfig.CACHE_STATS, RedisConfig.CACHE_CATEGORIES,
-                RedisConfig.CACHE_MEME_LIST, RedisConfig.CACHE_MEME,
-                RedisConfig.CACHE_SEARCH)) {
-            Cache cache = cacheManager.getCache(name);
-            if (cache != null) cache.clear();
-        }
+        List.of(
+            RedisConfig.CACHE_STATS, RedisConfig.CACHE_CATEGORIES,
+            RedisConfig.CACHE_MEME_LIST, RedisConfig.CACHE_MEME,
+            RedisConfig.CACHE_SEARCH
+        ).forEach(name ->
+            Optional.ofNullable(cacheManager.getCache(name)).ifPresent(c -> c.clear())
+        );
     }
 
     private String normalizeImagePath(String raw, String category, Path mdxPath) {
         if (raw == null) {
-            // Derive from the .mdx file's sibling image
             String mdxName = mdxPath.getFileName().toString();
-            String base = mdxName.substring(0, mdxName.length() - 4); // remove .mdx
+            String base = mdxName.substring(0, mdxName.length() - 4);
             return "memes/" + category + "/" + base + ".jpg";
         }
         if (raw.startsWith("./")) {
@@ -154,20 +175,13 @@ public class IndexerService {
     @SuppressWarnings("unchecked")
     private List<String> parseTags(Object raw) {
         if (raw instanceof List<?> list) {
-            return list.stream()
-                .map(Object::toString)
-                .collect(java.util.stream.Collectors.toList());
+            return list.stream().map(Object::toString).collect(Collectors.toList());
         }
         return Collections.emptyList();
     }
 
     private String str(Map<String, Object> fm, String key) {
-        Object v = fm.get(key);
-        return v != null ? v.toString() : null;
-    }
-
-    private String nullToEmpty(String s) {
-        return s != null ? s : "";
+        return Optional.ofNullable(fm.get(key)).map(Object::toString).orElse(null);
     }
 
     private int toInt(Object v) {
