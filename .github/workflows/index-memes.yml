@@ -1,0 +1,26 @@
+name: Index Memes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "memes/**"
+
+jobs:
+  reindex:
+    name: Trigger API reindex
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Call /admin/reindex
+        run: |
+          response=$(curl -sf \
+            --retry 3 \
+            --retry-delay 5 \
+            -X POST \
+            -H "X-Api-Key: ${{ secrets.ADMIN_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.API_BASE_URL }}/admin/reindex")
+          echo "Reindex response: $response"
+          echo "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Indexed {d[\"indexed\"]} memes in {d[\"duration_ms\"]}ms')"
