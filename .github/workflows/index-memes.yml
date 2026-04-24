@@ -7,64 +7,129 @@ on:
       - "memes/**"
 
 jobs:
-  reindex:
-    name: Trigger API reindex
+  index:
+    name: Detect and index changed memes
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Wait for API to be ready
+        with:
+          fetch-depth: 2
+
+      - name: Install pyyaml
+        run: pip install pyyaml --quiet
+
+      - name: Wait for API
         run: |
-          echo "Waiting for API to be ready..."
           for i in {1..30}; do
             if curl -sf "${{ secrets.API_BASE_URL }}/actuator/health" > /dev/null; then
-              echo "API is ready!"
+              echo "API ready"
               break
             fi
-            echo "Attempt $i/30 - API not ready yet, waiting 2 seconds..."
+            echo "Attempt $i/30, waiting 2s..."
             sleep 2
           done
-      
-      - name: Call /admin/reindex
-        id: reindex
+
+      - name: Detect changed MDX files
+        id: detect
         run: |
-          response=$(curl -sf \
-            --retry 5 \
-            --retry-delay 5 \
-            --max-time 300 \
-            -X POST \
-            -H "X-Api-Key: ${{ secrets.ADMIN_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            "${{ secrets.API_BASE_URL }}/admin/reindex")
-          
-          echo "Response: $response"
-          echo "response=$response" >> $GITHUB_OUTPUT
-          
-          # Parse response with jq (more robust)
-          indexed=$(echo "$response" | jq -r '.indexed // 0')
-          duration_ms=$(echo "$response" | jq -r '.duration_ms // 0')
-          
-          echo "✅ Indexed $indexed memes in ${duration_ms}ms"
-          
-          # Check for errors
-          errors=$(echo "$response" | jq -r '.errors // [] | length')
-          if [ "$errors" -gt 0 ]; then
-            echo "⚠️  $errors errors occurred during indexing"
-            echo "$response" | jq -r '.errors[]' | while read error; do
-              echo "  - $error"
-            done
+          CHANGED=$(git diff HEAD~1 HEAD --name-only | grep 'memes/.*\.mdx$' || true)
+          if [ -n "$CHANGED" ]; then
+            echo "$CHANGED" > /tmp/changed_mdx.txt
+            COUNT=$(echo "$CHANGED" | wc -l | tr -d ' ')
+          else
+            touch /tmp/changed_mdx.txt
+            COUNT=0
           fi
-      
-      - name: Verify reindex result
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "Found $COUNT changed MDX file(s)"
+          [ "$COUNT" -gt 0 ] && cat /tmp/changed_mdx.txt || true
+
+      - name: Parse and send changed memes
+        if: steps.detect.outputs.count > 0
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
         run: |
-          # Verificar que los memes se indexaron correctamente
+          python3 << 'PYEOF'
+          import yaml, json, re, os, sys
+          import urllib.request, urllib.error
+
+          changed = [l for l in open('/tmp/changed_mdx.txt').read().splitlines() if l.strip()]
+          api_url = os.environ['API_BASE_URL'].rstrip('/')
+          api_key = os.environ['ADMIN_API_KEY']
+          errors = []
+          indexed = 0
+
+          for mdx_path in changed:
+              if not os.path.exists(mdx_path):
+                  print(f"Skipping deleted file: {mdx_path}")
+                  continue
+              try:
+                  content = open(mdx_path, encoding='utf-8').read()
+                  match = re.match(r'^---\r?\n(.*?)\r?\n---', content, re.DOTALL)
+                  if not match:
+                      errors.append(f"No frontmatter in {mdx_path}")
+                      continue
+
+                  fm = yaml.safe_load(match.group(1))
+                  if not fm:
+                      errors.append(f"Empty frontmatter in {mdx_path}")
+                      continue
+
+                  category = fm.get('category') or ''
+                  slug = fm.get('slug') or ''
+                  image_raw = (fm.get('image') or '').lstrip('./')
+
+                  if not slug or not category:
+                      errors.append(f"Missing slug/category in {mdx_path}")
+                      continue
+
+                  payload = {
+                      'slug':        slug,
+                      'category':    category,
+                      'title':       fm.get('title') or '',
+                      'description': fm.get('description') or '',
+                      'author':      fm.get('author') or '',
+                      'subreddit':   fm.get('subreddit') or 'argentina',
+                      'score':       int(fm.get('score') or 0),
+                      'imagePath':   f"memes/{category}/{image_raw}" if image_raw else f"memes/{category}/{slug}.jpg",
+                      'tags':        [str(t) for t in (fm.get('tags') or [])],
+                      'source_url':  fm.get('source_url') or '',
+                      'post_url':    fm.get('post_url') or '',
+                  }
+
+                  body = json.dumps(payload).encode('utf-8')
+                  req = urllib.request.Request(
+                      f"{api_url}/admin/reindex",
+                      data=body,
+                      headers={'Content-Type': 'application/json', 'X-Api-Key': api_key},
+                      method='POST'
+                  )
+                  with urllib.request.urlopen(req, timeout=30) as resp:
+                      result = json.loads(resp.read())
+                      indexed += result.get('indexed', 1)
+                      print(f"OK [{resp.status}] {category}/{slug}")
+
+              except urllib.error.HTTPError as e:
+                  msg = f"HTTP {e.code} for {mdx_path}: {e.read().decode()}"
+                  errors.append(msg)
+                  print(f"ERROR: {msg}", file=sys.stderr)
+              except Exception as e:
+                  errors.append(f"{mdx_path}: {e}")
+                  print(f"ERROR: {mdx_path}: {e}", file=sys.stderr)
+
+          print(f"\nSummary: {indexed} indexed, {len(errors)} errors")
+          if errors:
+              for err in errors:
+                  print(f"  - {err}", file=sys.stderr)
+              sys.exit(1)
+          PYEOF
+
+      - name: Verify total meme count
+        run: |
           stats=$(curl -sf "${{ secrets.API_BASE_URL }}/")
-          total_memes=$(echo "$stats" | jq -r '.total_memes // 0')
-          echo "📊 Total memes in database: $total_memes"
-          
-          if [ "$total_memes" -eq 0 ]; then
-            echo "⚠️ Warning: No memes found after reindex"
-          fi
+          total=$(echo "$stats" | jq -r '.total_memes // 0')
+          echo "Total memes in database: $total"

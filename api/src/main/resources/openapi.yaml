@@ -203,9 +203,15 @@ paths:
     post:
       tags: [admin]
       operationId: reindex
-      summary: Re-scan memes/ directory and upsert all memes into SQLite
+      summary: Upsert a single meme (with body) or re-scan the full memes/ directory (no body)
       security:
         - ApiKeyAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemeIndexRequest"
       responses:
         "200":
           description: Reindex completed
@@ -319,6 +325,37 @@ components:
           type: array
           items:
             type: string
+
+    MemeIndexRequest:
+      type: object
+      required: [slug, category]
+      properties:
+        slug:
+          type: string
+        category:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        author:
+          type: string
+        subreddit:
+          type: string
+        score:
+          type: integer
+          format: int32
+          default: 0
+        imagePath:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        source_url:
+          type: string
+        post_url:
+          type: string
 
     ErrorResponse:
       type: object
