@@ -24,7 +24,7 @@ def _get(url: str, session: requests.Session, params: dict = None) -> dict:
             return resp.json()
         except requests.HTTPError as e:
             if e.response.status_code == 429:
-                wait = 5 * (2 ** attempt)
+                wait = 120 * (2 ** attempt)
                 logger.warning("Rate limited, waiting %ds", wait)
                 time.sleep(wait)
             elif e.response.status_code == 403:
