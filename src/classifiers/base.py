@@ -41,11 +41,11 @@ class BaseClassifier(ABC):
                 logger.error("Unexpected error classifying %s: %s", path.name, e)
                 result = ClassificationResult(url=url, error=f"unexpected: {e}")
             if result.error:
-                logger.warning("Classification error for %s: %s", url, result.error)
+                logger.warning("  [error] %s: %s", path.name, result.error)
             else:
                 logger.info(
-                    "  → is_meme=%s category=%r slug=%r",
-                    result.is_meme, result.category, result.filename_slug,
+                    "  → %s: is_meme=%s category=%r slug=%r",
+                    path.name, result.is_meme, result.category, result.filename_slug,
                 )
             return result
 

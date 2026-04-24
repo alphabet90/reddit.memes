@@ -235,7 +235,7 @@ def fetch_posts(
             return []
 
     while len(posts) < limit:
-        page_size = min(25, limit - len(posts))
+        page_size = min(100, limit - len(posts))
         params: dict = {"limit": page_size}
         if after:
             params["after"] = after
@@ -267,6 +267,11 @@ def fetch_posts(
         count += len(children)
         after = data.get("data", {}).get("after")
         if not after:
+            if len(posts) < limit:
+                logger.info(
+                    "Feed exhausted after %d posts (requested %d)",
+                    len(posts), limit,
+                )
             break
 
     logger.info("Fetched %d posts from r/%s", len(posts), subreddit)

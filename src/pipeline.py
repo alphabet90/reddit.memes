@@ -164,12 +164,32 @@ def run(
         url_to_sha1 = {url: sha1 for url, _, sha1 in clean_downloaded}
 
         meme_items: list = []
+        error_count = 0
         for result in results:
-            if result.is_meme and not result.error:
+            if result.error:
+                error_count += 1
+                logger.warning(
+                    "Skipping bloom indexing for %s (will retry): %s",
+                    result.url, result.error,
+                )
+            elif result.is_meme:
                 meme_items.append(result)
             else:
                 tracker.mark_processed(result.url)
         tracker.flush()
+
+        if error_count and error_count == len(results):
+            if any(r.error == "claude_not_found" for r in results):
+                logger.error(
+                    "'claude' CLI not found — aborting pipeline. "
+                    "Install Claude Code and ensure it is in PATH."
+                )
+                return
+            logger.warning(
+                "All %d items in batch failed classification — "
+                "they will be retried next run.",
+                error_count,
+            )
 
         if meme_items and not dry_run:
             url_to_path = dict(downloaded_for_classify)
