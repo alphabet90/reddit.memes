@@ -9,6 +9,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -119,18 +121,20 @@ public class MemeRepository {
     }
 
     public List<MemeRecord> search(String query, int offset, int limit) {
-        String ftsQuery = buildFtsQuery(query);
+        String tsq = buildTsQuery(query);
+        if (tsq.isEmpty()) return List.of();
         return jdbc.query(
-            "SELECT m.* FROM memes_fts f JOIN memes m ON f.rowid = m.rowid " +
-            "WHERE memes_fts MATCH ? ORDER BY rank LIMIT ? OFFSET ?",
-            memeRowMapper(), ftsQuery, limit, offset);
+            "SELECT * FROM memes WHERE search_vector @@ to_tsquery('english', ?) " +
+            "ORDER BY ts_rank(search_vector, to_tsquery('english', ?)) DESC LIMIT ? OFFSET ?",
+            memeRowMapper(), tsq, tsq, limit, offset);
     }
 
     public int countSearch(String query) {
-        String ftsQuery = buildFtsQuery(query);
+        String tsq = buildTsQuery(query);
+        if (tsq.isEmpty()) return 0;
         Integer count = jdbc.queryForObject(
-            "SELECT COUNT(*) FROM memes_fts WHERE memes_fts MATCH ?",
-            Integer.class, ftsQuery);
+            "SELECT COUNT(*) FROM memes WHERE search_vector @@ to_tsquery('english', ?)",
+            Integer.class, tsq);
         return count != null ? count : 0;
     }
 
@@ -139,23 +143,38 @@ public class MemeRepository {
     public void upsert(MemeRecord meme) {
         String tagsJson = toJson(meme.tags());
         jdbc.update(
-            "INSERT OR REPLACE INTO memes " +
+            "INSERT INTO memes " +
             "(slug, category, title, description, author, subreddit, score, " +
             " created_at, source_url, post_url, image_path, tags, indexed_at) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now'))",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+            "ON CONFLICT (slug, category) DO UPDATE SET " +
+            "  title=EXCLUDED.title, description=EXCLUDED.description, " +
+            "  author=EXCLUDED.author, subreddit=EXCLUDED.subreddit, " +
+            "  score=EXCLUDED.score, created_at=EXCLUDED.created_at, " +
+            "  source_url=EXCLUDED.source_url, post_url=EXCLUDED.post_url, " +
+            "  image_path=EXCLUDED.image_path, tags=EXCLUDED.tags, " +
+            "  indexed_at=EXCLUDED.indexed_at",
             meme.slug(), meme.category(), meme.title(), meme.description(),
             meme.author(), meme.subreddit(), meme.score(), meme.createdAt(),
-            meme.sourceUrl(), meme.postUrl(), meme.imagePath(), tagsJson
+            meme.sourceUrl(), meme.postUrl(), meme.imagePath(), tagsJson, nowIso()
         );
     }
 
     public int upsertAll(List<MemeRecord> memes) {
         if (memes.isEmpty()) return 0;
+        String now = nowIso();
         int[][] counts = jdbc.batchUpdate(
-            "INSERT OR REPLACE INTO memes " +
+            "INSERT INTO memes " +
             "(slug, category, title, description, author, subreddit, score, " +
             " created_at, source_url, post_url, image_path, tags, indexed_at) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now'))",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+            "ON CONFLICT (slug, category) DO UPDATE SET " +
+            "  title=EXCLUDED.title, description=EXCLUDED.description, " +
+            "  author=EXCLUDED.author, subreddit=EXCLUDED.subreddit, " +
+            "  score=EXCLUDED.score, created_at=EXCLUDED.created_at, " +
+            "  source_url=EXCLUDED.source_url, post_url=EXCLUDED.post_url, " +
+            "  image_path=EXCLUDED.image_path, tags=EXCLUDED.tags, " +
+            "  indexed_at=EXCLUDED.indexed_at",
             memes,
             memes.size(),
             (ps, meme) -> {
@@ -171,6 +190,7 @@ public class MemeRepository {
                 ps.setString(10, meme.postUrl());
                 ps.setString(11, meme.imagePath());
                 ps.setString(12, toJson(meme.tags()));
+                ps.setString(13, now);
             }
         );
         return Arrays.stream(counts).flatMapToInt(Arrays::stream).sum();
@@ -195,12 +215,17 @@ public class MemeRepository {
         );
     }
 
-    private String buildFtsQuery(String query) {
-        // Prefix-match each word: "cat dog" → "cat* dog*"
+    private String buildTsQuery(String query) {
         return Arrays.stream(query.trim().split("\\s+"))
             .filter(w -> !w.isEmpty())
-            .map(w -> w.replace("\"", "") + "*")
-            .collect(Collectors.joining(" "));
+            .map(w -> w.replaceAll("[^a-zA-Z0-9]", ""))
+            .filter(w -> !w.isEmpty())
+            .map(w -> w + ":*")
+            .collect(Collectors.joining(" & "));
+    }
+
+    private static String nowIso() {
+        return Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
     }
 
     private String toJson(List<String> tags) {
