@@ -58,6 +58,22 @@ The pipeline is orchestrated by `src/pipeline.py` and flows through four stages:
 
 **State management**: `src/post_tracker.py::PostTracker` persists processed post IDs and image URLs in a Bloom filter file (`processed.bloom`) for O(1) membership tests. The underlying reusable filter lives in `src/bloom.py` (uses Kirsch–Mitzenmacher double-hashing, atomic writes via `.tmp` files, stdlib-only). On first run after upgrading, a legacy `state.json` is automatically migrated into the Bloom filter and removed.
 
+## Agent Navigation Rules
+
+> These rules are mandatory for all agents working in this repository.
+
+**NEVER scan or read `/memes/*` under any circumstance.** That directory contains thousands of image files and will exhaust the context window immediately. There is no valid reason to inspect its contents.
+
+**Navigate to the correct area based on the type of change requested:**
+
+| Change type | Work in |
+|-------------|---------|
+| Frontend / UI | `clients/web/*` |
+| Backend / API | `api/*` |
+| CLI / pipeline | `src/*` |
+
+Do not explore outside the relevant area without a specific reason.
+
 ## Key Conventions
 
 - **Python 3.10+ union syntax** is used throughout (`Path | None`, not `Optional[Path]`).
