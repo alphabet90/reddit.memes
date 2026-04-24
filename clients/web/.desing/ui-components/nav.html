@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #181818; font-family: 'Space Grotesk', sans-serif; padding: 16px; }
+  nav { background: #0D0D0D; border-bottom: 1px solid #2c2c2c; padding: 0 24px; height: 56px; display: flex; align-items: center; gap: 32px; border-radius: 8px; }
+  .logo { font-family: 'Anton', Impact, sans-serif; font-size: 24px; text-transform: uppercase; line-height: 1; flex-shrink: 0; }
+  .logo .me { color: #fff; }
+  .logo .me2 { color: #fff; }
+  .logo .ar { color: #D4FF00; font-size: 20px; }
+  .logo .g { color: #fff; font-size: 20px; }
+  .nav-links { display: flex; gap: 4px; flex: 1; }
+  .nav-link { font-size: 13px; font-weight: 500; color: #a7a7a7; padding: 6px 10px; border-radius: 6px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .nav-link:hover, .nav-link.active { color: #fff; }
+  .nav-link.active { color: #D4FF00; }
+  .search { flex: 1; max-width: 240px; background: #1a1a1a; border: 1.5px solid #2c2c2c; border-radius: 999px; padding: 7px 14px; display: flex; align-items: center; gap: 8px; }
+  .search input { background: none; border: none; outline: none; color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 13px; width: 100%; }
+  .search input::placeholder { color: #6b6b6b; }
+  .btn-cta { background: #D4FF00; color: #0D0D0D; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; padding: 8px 14px; border-radius: 999px; border: none; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  .avatar { width: 32px; height: 32px; border-radius: 999px; background: #2c2c2c; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  svg { display: inline; }
+</style>
+</head>
+<body>
+  <nav>
+    <div class="logo"><span class="me">ME</span><span class="me2">ME</span><span class="ar">AR</span><span class="g">g</span></div>
+    <div class="nav-links">
+      <span class="nav-link active">MEMES</span>
+      <span class="nav-link">CATEGORÍAS ▾</span>
+      <span class="nav-link">TOP ▾</span>
+      <span class="nav-link">NUEVOS</span>
+      <span class="nav-link">ALEATORIO</span>
+    </div>
+    <div class="search">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b6b6b" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input placeholder="Buscar memes…" />
+    </div>
+    <button class="btn-cta">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      SUBÍ TU MEME
+    </button>
+    <div class="avatar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a7a7a7" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </div>
+  </nav>
+</body></html>

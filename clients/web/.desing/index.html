@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEMEARg — UI Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: 'Anton';
+  src: url('./fonts/Anton-Regular.ttf') format('truetype');
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --negro: #0D0D0D;
+  --lima: #D4FF00;
+  --blanco: #FFFFFF;
+  --celeste: #74C6F4;
+  --gris: #A7A7A7;
+  --surface: #1A1A1A;
+  --border: #2C2C2C;
+  --input: #222222;
+  --muted: #6B6B6B;
+  --orange: #FF6B00;
+  --font-display: 'Anton', Impact, sans-serif;
+  --font-ui: 'Space Grotesk', system-ui, sans-serif;
+}
+html, body { height: 100%; background: var(--negro); color: var(--blanco); font-family: var(--font-ui); }
+
+/* ── NAV ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: var(--negro); border-bottom: 1px solid var(--border);
+  height: 56px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
+}
+.logo { font-family: var(--font-display); font-size: 22px; text-transform: uppercase; line-height: 1; cursor: pointer; flex-shrink: 0; }
+.logo .ar { color: var(--lima); }
+.logo .sm { font-size: 18px; }
+.nav-links { display: flex; gap: 2px; flex: 1; }
+.nav-link { font-size: 13px; font-weight: 500; color: var(--gris); padding: 6px 10px; border-radius: 6px; cursor: pointer; transition: color 0.12s; white-space: nowrap; position: relative; }
+.nav-link:hover { color: var(--blanco); }
+.nav-link.active { color: var(--lima); }
+.nav-search { flex: 1; max-width: 260px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 999px; padding: 7px 14px 7px 12px; display: flex; align-items: center; gap: 8px; transition: border-color 0.15s; }
+.nav-search:focus-within { border-color: var(--lima); }
+.nav-search input { background: none; border: none; outline: none; color: var(--blanco); font-family: var(--font-ui); font-size: 13px; width: 100%; }
+.nav-search input::placeholder { color: var(--muted); }
+.btn-cta { background: var(--lima); color: var(--negro); font-family: var(--font-ui); font-weight: 700; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; padding: 8px 14px; border-radius: 999px; border: none; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 5px; transition: background 0.12s, transform 0.1s; flex-shrink: 0; }
+.btn-cta:hover { background: #C6F000; }
+.btn-cta:active { transform: scale(0.97); }
+.avatar { width: 32px; height: 32px; border-radius: 999px; background: var(--surface); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: border-color 0.12s; }
+.avatar:hover { border-color: var(--gris); }
+
+/* ── LAYOUT ── */
+.page { padding-top: 56px; min-height: 100vh; }
+.screen { display: none; }
+.screen.active { display: block; }
+.container { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+
+/* ── HERO ── */
+.hero { background: var(--negro); padding: 48px 0 40px; border-bottom: 1px solid var(--border); overflow: hidden; }
+.hero-inner { display: grid; grid-template-columns: 1fr 420px; gap: 32px; align-items: center; }
+.hero-eyebrow { font-size: 12px; font-weight: 600; color: var(--lima); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+.hero-title { font-family: var(--font-display); font-size: 64px; line-height: 1; text-transform: uppercase; margin-bottom: 12px; }
+.hero-title .highlight { color: var(--lima); }
+.hero-sub { font-size: 15px; color: var(--gris); line-height: 1.5; margin-bottom: 6px; }
+.hero-sub a { color: var(--lima); text-decoration: none; }
+.hero-search { display: flex; gap: 10px; align-items: center; margin-top: 20px; margin-bottom: 20px; }
+.hero-search-bar { flex: 1; max-width: 380px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 999px; padding: 12px 18px; display: flex; align-items: center; gap: 10px; transition: border-color 0.15s; }
+.hero-search-bar:focus-within { border-color: var(--lima); }
+.hero-search-bar input { background: none; border: none; outline: none; color: var(--blanco); font-family: var(--font-ui); font-size: 15px; width: 100%; }
+.hero-search-bar input::placeholder { color: var(--muted); }
+.hero-search-btn { background: var(--lima); color: var(--negro); border: none; border-radius: 999px; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.12s; flex-shrink: 0; }
+.hero-search-btn:hover { background: #C6F000; }
+.filter-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.12s; border: 1.5px solid var(--border); background: var(--surface); color: var(--blanco); letter-spacing: 0.02em; }
+.pill:hover { border-color: var(--lima); color: var(--lima); }
+.pill.active { background: var(--lima); color: var(--negro); border-color: var(--lima); }
+.hero-visual { position: relative; height: 320px; display: flex; align-items: center; justify-content: center; }
+.hero-collage { position: relative; width: 100%; height: 100%; }
+.hero-sticker { position: absolute; background: var(--lima); color: var(--negro); font-family: var(--font-display); font-size: 13px; text-transform: uppercase; padding: 5px 10px; border-radius: 4px; transform: rotate(-2deg); white-space: nowrap; }
+.hero-sticker-blue { background: var(--celeste); color: var(--negro); transform: rotate(1.5deg); }
+.hero-sticker-dark { background: var(--negro); color: var(--blanco); border: 1.5px solid var(--blanco); transform: rotate(-1deg); font-size: 11px; }
+.hero-char { position: absolute; font-size: 120px; line-height: 1; filter: grayscale(0.1); }
+
+/* ── MAIN CONTENT ── */
+.main-layout { display: grid; grid-template-columns: 1fr 280px; gap: 32px; padding: 32px 0; }
+.section-title { font-family: var(--font-ui); font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--blanco); display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.section-title .icon { font-size: 16px; }
+
+/* ── MEME GRID ── */
+.meme-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 32px; }
+
+/* ── MASONRY GRID ── */
+.masonry-wrap { position: relative; margin-bottom: 8px; }
+.masonry-grid { columns: 4; column-gap: 10px; max-height: 520px; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.16,1,0.3,1); }
+.masonry-grid.expanded { max-height: 2400px; }
+.masonry-fade { position: absolute; bottom: 0; left: 0; right: 0; height: 140px; background: linear-gradient(to top, #0D0D0D 20%, transparent 100%); pointer-events: none; transition: opacity 0.3s; }
+.masonry-fade.hidden { opacity: 0; }
+.masonry-more { display: flex; justify-content: center; padding: 12px 0 24px; }
+.btn-more { background: transparent; border: 1.5px solid #2c2c2c; color: #a7a7a7; font-family: var(--font-ui); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 9px 28px; border-radius: 999px; cursor: pointer; transition: all 0.15s; }
+.btn-more:hover { border-color: #D4FF00; color: #D4FF00; }
+.masonry-card { break-inside: avoid; background: var(--surface); border-radius: 8px; overflow: hidden; cursor: pointer; margin-bottom: 10px; transition: transform 0.15s, box-shadow 0.15s; display: inline-block; width: 100%; position: relative; }
+.masonry-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,0.65); }
+.masonry-card:hover .card-overlay { opacity: 1; }
+.masonry-card:hover .card-actions { opacity: 1; transform: translateY(0); }
+.masonry-card:hover .card-views { opacity: 1; }
+.masonry-img { width: 100%; display: flex; align-items: center; justify-content: center; font-size: 48px; }
+/* Shared card base */
+.meme-card { background: var(--surface); border-radius: 8px; overflow: hidden; cursor: pointer; position: relative; transition: transform 0.15s, box-shadow 0.15s; }
+.meme-card:hover { transform: scale(1.03); box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+.meme-card:hover .card-overlay { opacity: 1; }
+.meme-card:hover .card-actions { opacity: 1; transform: translateY(0); }
+.meme-card:hover .card-views { opacity: 1; }
+.meme-card-img { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 48px; }
+.card-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.08) 55%, transparent 100%); opacity: 0; transition: opacity 0.18s; pointer-events: none; }
+.card-actions { position: absolute; bottom: 8px; right: 8px; display: flex; gap: 5px; opacity: 0; transform: translateY(4px); transition: opacity 0.18s, transform 0.18s; z-index: 2; }
+.card-views { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 600; color: #d0d0d0; display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.18s; z-index: 2; }
+.card-btn { background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #fff; cursor: pointer; transition: background 0.12s, border-color 0.12s; }
+.card-btn:hover { background: var(--lima); color: var(--negro); border-color: var(--lima); }
+.stat { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 3px; }
+.rank-badge { position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-family: var(--font-ui); z-index: 2; }
+.nuevo-badge { position: absolute; top: 6px; left: 6px; background: var(--lima); color: var(--negro); font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.06em; font-family: var(--font-ui); z-index: 2; }
+
+/* ── SIDEBAR ── */
+.sidebar {}
+.sidebar-widget { background: var(--surface); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+.widget-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--blanco); margin-bottom: 12px; }
+.cat-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-radius: 6px; cursor: pointer; transition: background 0.1s; border: 1.5px solid transparent; margin-bottom: 3px; }
+.cat-item:hover { background: rgba(255,255,255,0.04); border-color: rgba(212,255,0,0.2); }
+.cat-item.active-cat { background: rgba(212,255,0,0.08); border-color: rgba(212,255,0,0.3); }
+.cat-item.active-cat .cat-name { color: var(--lima); }
+.cat-left { display: flex; align-items: center; gap: 8px; }
+.cat-name { font-size: 13px; font-weight: 500; color: var(--blanco); }
+.cat-count { font-size: 12px; color: var(--muted); }
+.btn-ver-todas { width: 100%; margin-top: 8px; background: transparent; border: 1.5px solid var(--border); color: var(--gris); font-family: var(--font-ui); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 8px; border-radius: 6px; cursor: pointer; transition: all 0.12s; }
+.btn-ver-todas:hover { border-color: var(--lima); color: var(--lima); }
+.meme-del-dia { aspect-ratio: 1; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 56px; margin-bottom: 10px; position: relative; }
+.meme-del-dia-label { position: absolute; bottom: 8px; left: 8px; right: 8px; background: rgba(0,0,0,0.75); padding: 6px 8px; border-radius: 5px; font-size: 12px; font-weight: 500; color: var(--blanco); }
+
+/* ── MEME DETAIL ── */
+.detail-back { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gris); cursor: pointer; padding: 16px 0; transition: color 0.12s; }
+.detail-back:hover { color: var(--lima); }
+.detail-layout { display: grid; grid-template-columns: 1fr 360px; gap: 32px; padding-bottom: 48px; }
+.detail-image-wrap { background: var(--surface); border-radius: 12px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 120px; overflow: hidden; }
+.detail-info {}
+.detail-title { font-family: var(--font-ui); font-size: 22px; font-weight: 700; color: var(--blanco); line-height: 1.25; margin-bottom: 12px; }
+.detail-meta { display: flex; gap: 16px; margin-bottom: 20px; }
+.detail-stat { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--gris); }
+.detail-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+.btn-action { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 999px; font-family: var(--font-ui); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.12s; border: 1.5px solid var(--border); background: var(--surface); color: var(--blanco); }
+.btn-action.primary { background: var(--lima); color: var(--negro); border-color: var(--lima); }
+.btn-action.primary:hover { background: #C6F000; }
+.btn-action:hover { border-color: var(--lima); color: var(--lima); }
+.detail-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+.tag { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 12px; color: var(--gris); cursor: pointer; }
+.tag:hover { border-color: var(--lima); color: var(--lima); }
+.related-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+/* ── UPLOAD SCREEN ── */
+.upload-screen { max-width: 600px; margin: 48px auto; padding: 0 24px; }
+.upload-title { font-family: var(--font-display); font-size: 36px; text-transform: uppercase; color: var(--blanco); margin-bottom: 6px; }
+.upload-sub { font-size: 14px; color: var(--gris); margin-bottom: 32px; }
+.upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.15s; background: var(--surface); }
+.upload-zone:hover { border-color: var(--lima); background: rgba(212,255,0,0.04); }
+.upload-icon { font-size: 48px; margin-bottom: 12px; }
+.upload-zone-text { font-size: 16px; font-weight: 600; color: var(--blanco); margin-bottom: 6px; }
+.upload-zone-sub { font-size: 13px; color: var(--muted); }
+.form-group { margin-bottom: 18px; }
+.form-label { font-size: 13px; font-weight: 600; color: var(--blanco); margin-bottom: 6px; display: block; }
+.form-input { width: 100%; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; padding: 11px 14px; color: var(--blanco); font-family: var(--font-ui); font-size: 14px; outline: none; transition: border-color 0.15s; }
+.form-input:focus { border-color: var(--lima); }
+.form-input::placeholder { color: var(--muted); }
+.btn-upload-submit { width: 100%; background: var(--lima); color: var(--negro); font-family: var(--font-ui); font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.04em; padding: 14px; border-radius: 999px; border: none; cursor: pointer; margin-top: 8px; transition: background 0.12s; }
+.btn-upload-submit:hover { background: #C6F000; }
+
+svg { display: inline; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="logo" onclick="showScreen('home')">ME<span class="ar">ME</span>AR<span class="sm">g</span></div>
+  <div class="nav-links">
+    <span class="nav-link active" onclick="showScreen('home')">MEMES</span>
+    <span class="nav-link">CATEGORÍAS ▾</span>
+    <span class="nav-link">TOP ▾</span>
+    <span class="nav-link">NUEVOS</span>
+    <span class="nav-link">ALEATORIO</span>
+  </div>
+  <div class="nav-search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b6b6b" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input placeholder="Buscar memes…" />
+  </div>
+  <button class="btn-cta" onclick="showScreen('upload')">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    SUBÍ TU MEME
+  </button>
+  <div class="avatar">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a7a7a7" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- ── HOME SCREEN ── -->
+  <div class="screen active" id="screen-home">
+    <!-- Hero -->
+    <div class="hero">
+      <div class="container">
+        <div class="hero-inner">
+          <div>
+            <div class="hero-eyebrow">🔥 El repositorio más grande de Argentina</div>
+            <div class="hero-title">TODOS LOS<br><span class="highlight">MEMES.</span><br>EN UN SOLO<br>LUGAR.</div>
+            <div class="hero-sub">El repositorio de memes más grande de Argentina.<br>Subido por la gente. <a href="#">Para la gente.</a></div>
+            <div class="hero-search">
+              <div class="hero-search-bar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b6b6b" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input placeholder="Buscar memes…" />
+              </div>
+              <button class="hero-search-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0D0D0D" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </button>
+            </div>
+            <div class="filter-pills">
+              <span class="pill active" onclick="setPill(this)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                TOP
+              </span>
+              <span class="pill" onclick="setPill(this)">⚡ NUEVOS</span>
+              <span class="pill" onclick="setPill(this)">☺ CLÁSICOS</span>
+              <span class="pill" onclick="setPill(this)">✕ RANDOM</span>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+              <div style="font-size:140px;filter:grayscale(0.2);line-height:1;position:absolute;bottom:0;left:50%;transform:translateX(-50%);">🐕</div>
+              <div class="hero-sticker" style="top:20px;right:20px;">¿QUÉ MIRÁ BOBO?</div>
+              <div class="hero-sticker hero-sticker-blue" style="bottom:60px;left:10px;">SIN MEMES NO HAY PARAÍSO</div>
+              <div class="hero-sticker" style="top:80px;left:30px;font-size:11px;background:rgba(212,255,0,0.15);border:1px solid rgba(212,255,0,0.4);color:#D4FF00;">YO LOS VI</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="container">
+      <div class="main-layout">
+        <div>
+          <!-- Top memes -->
+          <div class="section-title"><span class="icon">🔥</span> TOP MEMES DEL DÍA</div>
+          <div class="meme-grid">
+            <div class="meme-card" onclick="showScreen('detail')">
+
+              <div class="meme-card-img" style="background:linear-gradient(135deg,#3a2510,#5a3510);">
+                <div class="rank-badge" style="background:#D4FF00;color:#0D0D0D;">1</div>
+                🐕
+              </div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>12.3k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+            <div class="meme-card" onclick="showScreen('detail')">
+
+              <div class="meme-card-img" style="background:linear-gradient(135deg,#1a1a3a,#2a2a5a);">
+                <div class="rank-badge" style="background:#a7a7a7;color:#0D0D0D;">2</div>
+                🎭
+              </div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>9.9k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+            <div class="meme-card" onclick="showScreen('detail')">
+
+              <div class="meme-card-img" style="background:linear-gradient(135deg,#1a3020,#204a30);">
+                <div class="rank-badge" style="background:#FF6B00;color:#fff;">3</div>
+                🐱
+              </div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>8.1k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+            <div class="meme-card" onclick="showScreen('detail')">
+
+              <div class="meme-card-img" style="background:linear-gradient(135deg,#2a1a3a,#3a2a5a);">
+                <div class="rank-badge" style="background:rgba(0,0,0,0.55);color:#a7a7a7;">4</div>
+                🐧
+              </div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>7.2k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+            <div class="meme-card" onclick="showScreen('detail')">
+
+              <div class="meme-card-img" style="background:linear-gradient(135deg,#3a2a1a,#5a4020);">
+                <div class="rank-badge" style="background:rgba(0,0,0,0.55);color:#a7a7a7;">5</div>
+                🎬
+              </div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>6.4k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Popular memes masonry -->
+          <div class="section-title"><span class="icon">⭐</span> MEMES POPULARES</div>
+          <div class="masonry-wrap">
+            <div class="masonry-grid" id="masonryGrid">
+
+            <div class="masonry-card" onclick="showScreen('detail')">
+              <div class="masonry-img" style="height:140px;background:linear-gradient(135deg,#2a1a0a,#4a3010);">🐕</div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>54.2k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+
+            <div class="masonry-card" onclick="showScreen('detail')">
+              <div class="masonry-img" style="height:190px;background:linear-gradient(135deg,#0a1a2a,#102040);">🐱</div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>48.7k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+
+            <div class="masonry-card" onclick="showScreen('detail')">
+              <div class="masonry-img" style="height:110px;background:linear-gradient(135deg,#1a0a2a,#2a1040);">🐸</div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>41.3k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+
+            <div class="masonry-card" onclick="showScreen('detail')">
+              <div class="masonry-img" style="height:160px;background:linear-gradient(135deg,#0a2a0a,#104010);">🐧</div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>38.9k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+
+            <div class="masonry-card" onclick="showScreen('detail')">
+              <div class="masonry-img" style="height:130px;background:linear-gradient(135deg,#2a1010,#401820);">🦊</div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>35.4k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+
+            <div class="masonry-card" onclick="showScreen('detail')">
+              <div class="masonry-img" style="height:200px;background:linear-gradient(135deg,#1a1a0a,#303010);">🎭</div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>31.0k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+
+            <div class="masonry-card" onclick="showScreen('detail')">
+              <div class="masonry-img" style="height:120px;background:linear-gradient(135deg,#0a1a2a,#0a2030);">🐭</div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>28.6k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+
+            <div class="masonry-card" onclick="showScreen('detail')">
+              <div class="masonry-img" style="height:170px;background:linear-gradient(135deg,#1a0a1a,#2a1030);">🐩</div>
+              <div class="card-overlay"></div>
+              <div class="card-views"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>24.1k</div>
+              <div class="card-actions">
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+                <div class="card-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+              </div>
+            </div>
+            <div class="masonry-fade" id="masonryFade"></div>
+          </div>
+          <div class="masonry-more">
+            <button class="btn-more" id="masonryBtn" onclick="toggleMasonry()">VER MÁS POPULARES</button>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+          <div class="sidebar-widget">
+            <div class="widget-title">CATEGORÍAS</div>
+            <div class="cat-item active-cat">
+              <div class="cat-left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D4FF00" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                <span class="cat-name">La Vida</span>
+              </div>
+              <span class="cat-count" style="color:var(--lima)">32.1k</span>
+            </div>
+            <div class="cat-item">
+              <div class="cat-left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a7a7a7" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                <span class="cat-name">Política</span>
+              </div>
+              <span class="cat-count">25.7k</span>
+            </div>
+            <div class="cat-item">
+              <div class="cat-left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a7a7a7" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+                <span class="cat-name">Fútbol</span>
+              </div>
+              <span class="cat-count">18.3k</span>
+            </div>
+            <div class="cat-item">
+              <div class="cat-left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a7a7a7" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                <span class="cat-name">Argentinos</span>
+              </div>
+              <span class="cat-count">15.2k</span>
+            </div>
+            <div class="cat-item">
+              <div class="cat-left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a7a7a7" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <span class="cat-name">Clásicos</span>
+              </div>
+              <span class="cat-count">28.7k</span>
+            </div>
+            <div class="cat-item">
+              <div class="cat-left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a7a7a7" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+                <span class="cat-name">Random</span>
+              </div>
+              <span class="cat-count">∞</span>
+            </div>
+            <button class="btn-ver-todas">VER TODAS</button>
+          </div>
+
+          <div class="sidebar-widget">
+            <div class="widget-title">TENDENCIAS</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;cursor:pointer;" onmouseover="this.querySelector('span').style.color='#D4FF00'" onmouseout="this.querySelector('span').style.color='#fff'">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:10px;font-weight:700;color:#D4FF00;width:16px;">1</span>
+                  <span style="font-size:13px;font-weight:500;color:#fff;transition:color 0.12s;">#perroconfundido</span>
+                </div>
+                <span style="font-size:11px;color:var(--muted);">8.4k</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;cursor:pointer;" onmouseover="this.querySelector('span').style.color='#D4FF00'" onmouseout="this.querySelector('span').style.color='#fff'">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:10px;font-weight:700;color:#a7a7a7;width:16px;">2</span>
+                  <span style="font-size:13px;font-weight:500;color:#fff;transition:color 0.12s;">#milei</span>
+                </div>
+                <span style="font-size:11px;color:var(--muted);">7.1k</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;cursor:pointer;" onmouseover="this.querySelector('span').style.color='#D4FF00'" onmouseout="this.querySelector('span').style.color='#fff'">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:10px;font-weight:700;color:#FF6B00;width:16px;">3</span>
+                  <span style="font-size:13px;font-weight:500;color:#fff;transition:color 0.12s;">#dalevodespodes</span>
+                </div>
+                <span style="font-size:11px;color:var(--muted);">5.9k</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #222;cursor:pointer;" onmouseover="this.querySelector('span').style.color='#D4FF00'" onmouseout="this.querySelector('span').style.color='#fff'">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:10px;font-weight:700;color:#3a3a3a;width:16px;">4</span>
+                  <span style="font-size:13px;font-weight:500;color:#fff;transition:color 0.12s;">#maradona</span>
+                </div>
+                <span style="font-size:11px;color:var(--muted);">4.8k</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;cursor:pointer;" onmouseover="this.querySelector('span').style.color='#D4FF00'" onmouseout="this.querySelector('span').style.color='#fff'">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:10px;font-weight:700;color:#3a3a3a;width:16px;">5</span>
+                  <span style="font-size:13px;font-weight:500;color:#fff;transition:color 0.12s;">#gatosargentinos</span>
+                </div>
+                <span style="font-size:11px;color:var(--muted);">3.2k</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-widget">
+            <div class="widget-title">SUBÍ TU MEME</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Pasá a la historia. Subido por la gente, para la gente.</div>
+            <button class="btn-cta" style="width:100%;justify-content:center;" onclick="showScreen('upload')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              SUBÍ TU MEME
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DETAIL SCREEN ── -->
+  <div class="screen" id="screen-detail">
+    <div class="container">
+      <div class="detail-back" onclick="showScreen('home')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Volver a memes
+      </div>
+      <div class="detail-layout">
+        <div>
+          <div class="detail-image-wrap">🐕</div>
+        </div>
+        <div class="detail-info">
+          <div class="detail-title">Cuando te dicen "mañana arranco la dieta"</div>
+          <div class="detail-meta">
+            <span class="detail-stat">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              12.3k vistas
+            </span>
+            <span class="detail-stat">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              1.2k compartidos
+            </span>
+          </div>
+          <div class="detail-actions">
+            <button class="btn-action primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              COMPARTIR
+            </button>
+            <button class="btn-action">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+              GUARDAR
+            </button>
+            <button class="btn-action">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              COMENTAR
+            </button>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">CATEGORÍAS</div>
+          <div class="detail-tags">
+            <span class="tag">La Vida</span>
+            <span class="tag">Dieta</span>
+            <span class="tag">Mañana</span>
+            <span class="tag">Humor</span>
+            <span class="tag">Argento</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);text-align:right;margin-top:16px;">Formato: JPG · 800×600px</div>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:8px;"><span>🔁</span> MEMES RELACIONADOS</div>
+      <div class="related-grid" style="max-width:520px;">
+        <div class="meme-card" onclick="showScreen('detail')">
+          <div class="meme-card-img" style="background:linear-gradient(135deg,#2a1a1a,#4a2a2a);">🐩</div>
+          <div class="meme-card-body"><div class="meme-card-title">Igual arranco el lunes</div></div>
+        </div>
+        <div class="meme-card" onclick="showScreen('detail')">
+          <div class="meme-card-img" style="background:linear-gradient(135deg,#1a2a1a,#2a4a2a);">🐸</div>
+          <div class="meme-card-body"><div class="meme-card-title">Yo sin comer a las 11pm</div></div>
+        </div>
+        <div class="meme-card" onclick="showScreen('detail')">
+          <div class="meme-card-img" style="background:linear-gradient(135deg,#1a1a2a,#2a2a4a);">🦴</div>
+          <div class="meme-card-body"><div class="meme-card-title">El plan de hoy: nada</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── UPLOAD SCREEN ── -->
+  <div class="screen" id="screen-upload">
+    <div class="upload-screen">
+      <div class="detail-back" onclick="showScreen('home')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Volver
+      </div>
+      <div class="upload-title">SUBÍ TU MEME</div>
+      <div class="upload-sub">Pasá a la historia. Subido por la gente, para la gente.</div>
+
+      <div class="upload-zone" style="margin-bottom:24px;">
+        <div class="upload-icon">📤</div>
+        <div class="upload-zone-text">Arrastrá tu meme acá</div>
+        <div class="upload-zone-sub">o hacé click para elegir un archivo · JPG, PNG · máx 10MB</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Título del meme *</label>
+        <input class="form-input" type="text" placeholder="¿De qué trata este meme?">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categoría</label>
+        <select class="form-input" style="cursor:pointer;">
+          <option value="" style="background:#1a1a1a;">Elegí una categoría</option>
+          <option style="background:#1a1a1a;">La Vida</option>
+          <option style="background:#1a1a1a;">Política</option>
+          <option style="background:#1a1a1a;">Fútbol</option>
+          <option style="background:#1a1a1a;">Argentinos</option>
+          <option style="background:#1a1a1a;">Clásicos</option>
+          <option style="background:#1a1a1a;">Random</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tags (separados por coma)</label>
+        <input class="form-input" type="text" placeholder="humor, perros, argentina…">
+      </div>
+      <button class="btn-upload-submit">SUBIR MEME</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleMasonry() {
+  const grid = document.getElementById('masonryGrid');
+  const fade = document.getElementById('masonryFade');
+  const btn  = document.getElementById('masonryBtn');
+  const expanded = grid.classList.toggle('expanded');
+  fade.classList.toggle('hidden', expanded);
+  btn.textContent = expanded ? 'VER MENOS' : 'VER MÁS POPULARES';
+}
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelector('.page').scrollTop = 0;
+  window.scrollTo(0, 0);
+  // Update nav active state
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  if (name === 'home') document.querySelector('.nav-link').classList.add('active');
+}
+function setPill(el) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

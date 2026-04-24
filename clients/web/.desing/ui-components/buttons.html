@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0D0D0D; font-family: 'Space Grotesk', sans-serif; padding: 20px 24px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .row:last-child { margin-bottom: 0; }
+  .label { font-size: 10px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.06em; width: 80px; flex-shrink: 0; }
+  button { font-family: 'Space Grotesk', sans-serif; font-weight: 700; cursor: pointer; border: none; font-size: 13px; letter-spacing: 0.04em; transition: all 0.15s; }
+  .btn-primary { background: #D4FF00; color: #0D0D0D; padding: 10px 20px; border-radius: 999px; text-transform: uppercase; }
+  .btn-primary:hover { background: #C6F000; }
+  .btn-primary-icon { background: #D4FF00; color: #0D0D0D; padding: 10px 18px; border-radius: 999px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+  .btn-secondary { background: transparent; color: #fff; padding: 9px 18px; border-radius: 999px; border: 1.5px solid #2c2c2c; text-transform: uppercase; }
+  .btn-secondary:hover { border-color: #D4FF00; color: #D4FF00; }
+  .btn-ghost { background: transparent; color: #a7a7a7; padding: 9px 18px; border-radius: 6px; border: 1.5px solid #3a3a3a; }
+  .btn-ghost:hover { color: #fff; border-color: #6b6b6b; }
+  .btn-sm { font-size: 11px; padding: 6px 14px; }
+  svg { display: inline; vertical-align: middle; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="label">Primary</div>
+    <button class="btn-primary">SUBÍ TU MEME</button>
+    <button class="btn-primary btn-sm">VER TODAS</button>
+  </div>
+  <div class="row">
+    <div class="label">With icon</div>
+    <button class="btn-primary-icon">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      SUBÍ TU MEME
+    </button>
+  </div>
+  <div class="row">
+    <div class="label">Secondary</div>
+    <button class="btn-secondary">CATEGORÍAS</button>
+    <button class="btn-secondary btn-sm">RANDOM</button>
+  </div>
+  <div class="row">
+    <div class="label">Ghost</div>
+    <button class="btn-ghost">Cancelar</button>
+    <button class="btn-ghost btn-sm">Ver más</button>
+  </div>
+</body></html>

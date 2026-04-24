@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: 'Anton'; src: url('../fonts/Anton-Regular.ttf') format('truetype'); }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0D0D0D; font-family: 'Space Grotesk', sans-serif; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+.label { font-size: 10px; font-weight: 600; color: #3a3a3a; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+.divider { height: 1px; background: #1a1a1a; }
+.row { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+
+/* Wordmark */
+.logo { font-family: 'Anton', Impact, sans-serif; text-transform: uppercase; line-height: 1; letter-spacing: -0.01em; }
+.open { color: #FFFFFF; }
+.meme { color: #D4FF00; }
+
+/* Isotipo */
+.iso {
+  background: #D4FF00; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.iso-text { font-family: 'Anton', Impact, sans-serif; text-transform: uppercase; color: #0D0D0D; line-height: 1; }
+
+/* On-light */
+.on-light { background: #fff; padding: 10px 14px; border-radius: 8px; display: inline-block; }
+.on-light .open { color: #0D0D0D; }
+.on-light .meme { color: #0D0D0D; }
+
+/* Tagline */
+.tagline { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 500; color: #6b6b6b; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+  <!-- Principal -->
+  <div>
+    <div class="label">Principal (wordmark)</div>
+    <div class="logo" style="font-size:58px;"><span class="open">OPEN</span><span class="meme">MEME</span></div>
+    <div class="tagline">El repositorio público de memes más grande de Argentina</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Variants row -->
+  <div>
+    <div class="label">Variantes</div>
+    <div class="row">
+
+      <!-- Medium -->
+      <div>
+        <div class="label" style="margin-bottom:6px;">Nav / Medium</div>
+        <div class="logo" style="font-size:26px;"><span class="open">OPEN</span><span class="meme">MEME</span></div>
+      </div>
+
+      <!-- Small -->
+      <div>
+        <div class="label" style="margin-bottom:6px;">Small</div>
+        <div class="logo" style="font-size:18px;"><span class="open">OPEN</span><span class="meme">MEME</span></div>
+      </div>
+
+      <!-- Isotipo square -->
+      <div>
+        <div class="label" style="margin-bottom:6px;">Isotipo / Favicon</div>
+        <div class="iso" style="width:52px;height:52px;">
+          <span class="iso-text" style="font-size:18px;">OP</span>
+        </div>
+      </div>
+
+      <!-- Isotipo alt -->
+      <div>
+        <div class="label" style="margin-bottom:6px;">Isotipo alt</div>
+        <div style="position:relative;display:inline-block;">
+          <div class="iso" style="width:52px;height:52px;background:#0D0D0D;border:2px solid #D4FF00;">
+            <span class="iso-text" style="font-size:16px;color:#D4FF00;">OP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- On light -->
+      <div>
+        <div class="label" style="margin-bottom:6px;">Sobre fondo claro</div>
+        <div class="on-light">
+          <div class="logo" style="font-size:22px;"><span class="open">OPEN</span><span style="color:#0a9600;">MEME</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Stacked lockup -->
+  <div>
+    <div class="label">Lockup apilado</div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="iso" style="width:44px;height:44px;border-radius:8px;flex-shrink:0;">
+        <span class="iso-text" style="font-size:16px;">OP</span>
+      </div>
+      <div>
+        <div class="logo" style="font-size:26px;"><span class="open">OPEN</span><span class="meme">MEME</span></div>
+        <div class="tagline" style="margin-top:2px;">Repositorio público · Argentina</div>
+      </div>
+    </div>
+  </div>
+
+</body></html>

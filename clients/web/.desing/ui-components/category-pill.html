@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0D0D0D; font-family: 'Space Grotesk', sans-serif; padding: 20px 24px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .section-label { font-size: 10px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .cat-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #1a1a1a; border-radius: 6px; gap: 32px; cursor: pointer; transition: background 0.12s; border: 1.5px solid transparent; }
+  .cat-item:hover { border-color: #D4FF00; }
+  .cat-left { display: flex; align-items: center; gap: 8px; }
+  .cat-name { font-size: 13px; font-weight: 500; color: #fff; }
+  .cat-count { font-size: 12px; color: #6b6b6b; }
+  .cat-active { background: rgba(212,255,0,0.08); border-color: rgba(212,255,0,0.4) !important; }
+  .cat-active .cat-name { color: #D4FF00; }
+  .categories { display: flex; flex-direction: column; gap: 4px; }
+  svg { display: inline; flex-shrink: 0; }
+</style>
+</head>
+<body>
+  <div class="section-label">Category List (Sidebar)</div>
+  <div class="categories">
+    <div class="cat-item cat-active">
+      <div class="cat-left">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D4FF00" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+        <span class="cat-name">La Vida</span>
+      </div>
+      <span class="cat-count" style="color:#D4FF00;">32.1k</span>
+    </div>
+    <div class="cat-item">
+      <div class="cat-left">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a7a7a7" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span class="cat-name">Política</span>
+      </div>
+      <span class="cat-count">25.7k</span>
+    </div>
+    <div class="cat-item">
+      <div class="cat-left">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a7a7a7" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8c-1.5 0-3 .5-4 1.5L12 12l4-2.5C15 8.5 13.5 8 12 8z"/></svg>
+        <span class="cat-name">Fútbol</span>
+      </div>
+      <span class="cat-count">18.3k</span>
+    </div>
+    <div class="cat-item">
+      <div class="cat-left">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a7a7a7" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span class="cat-name">Clásicos</span>
+      </div>
+      <span class="cat-count">28.7k</span>
+    </div>
+    <div class="cat-item">
+      <div class="cat-left">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a7a7a7" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+        <span class="cat-name">Random</span>
+      </div>
+      <span class="cat-count">∞</span>
+    </div>
+  </div>
+  <div style="margin-top:10px;">
+    <button style="background:transparent;border:1.5px solid #2c2c2c;color:#a7a7a7;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:7px 16px;border-radius:6px;cursor:pointer;width:100%;">VER TODAS</button>
+  </div>
+</body></html>

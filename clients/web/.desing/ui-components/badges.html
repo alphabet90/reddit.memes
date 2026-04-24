@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0D0D0D; font-family: 'Space Grotesk', sans-serif; padding: 22px 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  .section { display: flex; flex-direction: column; gap: 8px; }
+  .section-label { font-size: 10px; font-weight: 600; color: #3a3a3a; text-transform: uppercase; letter-spacing: 0.1em; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  /* ── Content Badges ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 5px 10px; border-radius: 5px; line-height: 1;
+  }
+  .badge-nuevo   { background: #D4FF00; color: #0D0D0D; }
+  .badge-top     { background: #FF6B00; color: #fff; }
+  .badge-clasico { background: #74C6F4; color: #0D0D0D; }
+  .badge-random  { background: #1f1f1f; color: #a7a7a7; border: 1.5px solid #2c2c2c; }
+  .badge-tendencia { background: rgba(212,255,0,0.1); color: #D4FF00; border: 1.5px solid rgba(212,255,0,0.28); }
+
+  /* ── Rank Badges ── */
+  .rank {
+    width: 28px; height: 28px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; font-family: 'Space Grotesk', sans-serif;
+    flex-shrink: 0;
+  }
+  .rank-1 { background: #D4FF00; color: #0D0D0D; }
+  .rank-2 { background: #a7a7a7; color: #0D0D0D; }
+  .rank-3 { background: #FF6B00; color: #fff; }
+  .rank-n { background: #1f1f1f; color: #6b6b6b; border: 1.5px solid #2c2c2c; }
+
+  /* ── Filter Pills ── */
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 999px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    transition: all 0.14s; line-height: 1;
+    border: 1.5px solid transparent;
+  }
+  .pill-active  { background: #D4FF00; color: #0D0D0D; border-color: #D4FF00; }
+  .pill-default { background: #161616; color: #fff; border-color: #2c2c2c; }
+  .pill-default:hover { border-color: #D4FF00; color: #D4FF00; }
+
+  svg { display: inline; flex-shrink: 0; }
+  .divider { height: 1px; background: #1a1a1a; }
+</style>
+</head>
+<body>
+
+  <div class="section">
+    <div class="section-label">Content Badges</div>
+    <div class="row">
+      <span class="badge badge-nuevo">NUEVO</span>
+      <span class="badge badge-top">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 4 7 4 12s2 8 8 8 8-3 8-8-2.5-10-8-10zm1 14H11v-2h2v2zm0-4H11V7h2v5z" opacity="0"/><path d="M12 0a1 1 0 00-.9.55L8.16 6H3a1 1 0 00-.7 1.71l4.09 3.9-1.56 5.47a1 1 0 001.5 1.1L12 15.07l5.67 3.11a1 1 0 001.5-1.1l-1.56-5.47 4.09-3.9A1 1 0 0021 6h-5.16L12.9.55A1 1 0 0012 0z" fill="none"/></svg>
+        TOP
+      </span>
+      <span class="badge badge-clasico">CLÁSICO</span>
+      <span class="badge badge-random">RANDOM</span>
+      <span class="badge badge-tendencia">TENDENCIA</span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-label">Rank Numbers</div>
+    <div class="row">
+      <span class="rank rank-1">1</span>
+      <span class="rank rank-2">2</span>
+      <span class="rank rank-3">3</span>
+      <span class="rank rank-n">4</span>
+      <span class="rank rank-n">5</span>
+      <span class="rank rank-n">6</span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="section-label">Filter Pills</div>
+    <div class="row">
+      <span class="pill pill-active">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        TOP
+      </span>
+      <span class="pill pill-default">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        NUEVOS
+      </span>
+      <span class="pill pill-default">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        CLÁSICOS
+      </span>
+      <span class="pill pill-default">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+        RANDOM
+      </span>
+    </div>
+  </div>
+
+</body></html>

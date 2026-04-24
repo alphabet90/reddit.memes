@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0D0D0D; font-family: 'Space Grotesk', sans-serif; padding: 20px 24px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .token { background: #1a1a1a; border-radius: 6px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+  .block { border-radius: 4px; flex-shrink: 0; }
+  .name { font-size: 11px; font-weight: 600; color: #fff; }
+  .val { font-size: 10px; color: #6b6b6b; margin-top: 2px; font-family: monospace; }
+  .section-label { font-size: 10px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.08em; margin: 12px 0 6px; }
+  .section-label:first-child { margin-top: 0; }
+  .shadow-demo { width: 40px; height: 28px; background: #2c2c2c; border-radius: 6px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+  <div class="section-label">Spacing Scale</div>
+  <div class="grid">
+    <div class="token"><div class="block" style="width:4px;height:20px;background:#D4FF00;"></div><div><div class="name">--space-1</div><div class="val">4px</div></div></div>
+    <div class="token"><div class="block" style="width:8px;height:20px;background:#D4FF00;"></div><div><div class="name">--space-2</div><div class="val">8px</div></div></div>
+    <div class="token"><div class="block" style="width:12px;height:20px;background:#D4FF00;"></div><div><div class="name">--space-3</div><div class="val">12px</div></div></div>
+    <div class="token"><div class="block" style="width:16px;height:20px;background:#D4FF00;"></div><div><div class="name">--space-4</div><div class="val">16px</div></div></div>
+    <div class="token"><div class="block" style="width:24px;height:20px;background:#D4FF00;"></div><div><div class="name">--space-6</div><div class="val">24px</div></div></div>
+    <div class="token"><div class="block" style="width:32px;height:20px;background:#D4FF00;"></div><div><div class="name">--space-8</div><div class="val">32px</div></div></div>
+  </div>
+  <div class="section-label">Border Radius</div>
+  <div class="grid">
+    <div class="token"><div class="block" style="width:28px;height:28px;background:#2c2c2c;border-radius:4px;"></div><div><div class="name">--radius-sm</div><div class="val">4px</div></div></div>
+    <div class="token"><div class="block" style="width:28px;height:28px;background:#2c2c2c;border-radius:8px;"></div><div><div class="name">--radius-md</div><div class="val">8px</div></div></div>
+    <div class="token"><div class="block" style="width:28px;height:28px;background:#2c2c2c;border-radius:12px;"></div><div><div class="name">--radius-lg</div><div class="val">12px</div></div></div>
+    <div class="token"><div class="block" style="width:48px;height:24px;background:#2c2c2c;border-radius:999px;"></div><div><div class="name">--radius-pill</div><div class="val">999px</div></div></div>
+  </div>
+  <div class="section-label">Shadows</div>
+  <div class="grid">
+    <div class="token"><div class="shadow-demo" style="box-shadow:0 1px 3px rgba(0,0,0,0.6);"></div><div><div class="name">shadow-sm</div><div class="val">subtle</div></div></div>
+    <div class="token"><div class="shadow-demo" style="box-shadow:0 4px 12px rgba(0,0,0,0.7);"></div><div><div class="name">shadow-md</div><div class="val">card</div></div></div>
+    <div class="token"><div class="shadow-demo" style="box-shadow:0 0 16px rgba(212,255,0,0.4);background:#1a1a1a;"></div><div><div class="name">shadow-lime</div><div class="val">glow accent</div></div></div>
+  </div>
+</body></html>

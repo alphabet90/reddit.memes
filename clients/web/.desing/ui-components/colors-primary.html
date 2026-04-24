@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #181818; font-family: 'Space Grotesk', sans-serif; padding: 20px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .swatch { flex: 1; min-width: 100px; border-radius: 8px; overflow: hidden; }
+  .swatch-color { height: 80px; }
+  .swatch-info { padding: 8px 10px; background: #1a1a1a; }
+  .swatch-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .swatch-hex { font-size: 11px; color: #a7a7a7; margin-top: 2px; font-family: monospace; }
+  .swatch-label { font-size: 10px; color: #6b6b6b; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+<div class="row">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#0D0D0D; border: 1px solid #2c2c2c;"></div>
+    <div class="swatch-info"><div class="swatch-name">Negro</div><div class="swatch-hex">#0D0D0D</div><div class="swatch-label">Background</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#D4FF00;"></div>
+    <div class="swatch-info"><div class="swatch-name">Lima Meme</div><div class="swatch-hex">#D4FF00</div><div class="swatch-label">Primary Accent</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#FFFFFF;"></div>
+    <div class="swatch-info"><div class="swatch-name">Blanco</div><div class="swatch-hex">#FFFFFF</div><div class="swatch-label">Foreground</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#74C6F4;"></div>
+    <div class="swatch-info"><div class="swatch-name">Celeste Argento</div><div class="swatch-hex">#74C6F4</div><div class="swatch-label">Secondary Accent</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#A7A7A7;"></div>
+    <div class="swatch-info"><div class="swatch-name">Gris Humo</div><div class="swatch-hex">#A7A7A7</div><div class="swatch-label">Muted Text</div></div>
+  </div>
+</div>
+</body></html>

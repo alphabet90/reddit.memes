@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #181818; font-family: 'Space Grotesk', sans-serif; padding: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .chip { border-radius: 6px; overflow: hidden; }
+  .chip-bar { height: 36px; }
+  .chip-info { padding: 6px 8px; background: #1a1a1a; }
+  .chip-name { font-size: 11px; font-weight: 600; color: #fff; }
+  .chip-role { font-size: 10px; color: #6b6b6b; margin-top: 1px; }
+  .badge-row { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+  .badge { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; }
+  .badge-label { font-size: 10px; color: #6b6b6b; font-family: 'Space Grotesk', sans-serif; margin-right: 4px; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="chip"><div class="chip-bar" style="background:#0D0D0D; border:1px solid #2c2c2c;"></div><div class="chip-info"><div class="chip-name">bg-primary</div><div class="chip-role">#0D0D0D</div></div></div>
+  <div class="chip"><div class="chip-bar" style="background:#1A1A1A;"></div><div class="chip-info"><div class="chip-name">bg-surface</div><div class="chip-role">#1A1A1A</div></div></div>
+  <div class="chip"><div class="chip-bar" style="background:#2C2C2C;"></div><div class="chip-info"><div class="chip-name">bg-elevated</div><div class="chip-role">#2C2C2C</div></div></div>
+  <div class="chip"><div class="chip-bar" style="background:#3A3A3A;"></div><div class="chip-info"><div class="chip-name">input-bg</div><div class="chip-role">#3A3A3A</div></div></div>
+  <div class="chip"><div class="chip-bar" style="background:#FFFFFF;"></div><div class="chip-info"><div class="chip-name">fg-primary</div><div class="chip-role">#FFFFFF</div></div></div>
+  <div class="chip"><div class="chip-bar" style="background:#A7A7A7;"></div><div class="chip-info"><div class="chip-name">fg-secondary</div><div class="chip-role">#A7A7A7</div></div></div>
+  <div class="chip"><div class="chip-bar" style="background:#6B6B6B;"></div><div class="chip-info"><div class="chip-name">fg-muted</div><div class="chip-role">#6B6B6B</div></div></div>
+  <div class="chip"><div class="chip-bar" style="background:#D0D0D0;"></div><div class="chip-info"><div class="chip-name">fg-disabled</div><div class="chip-role">#D0D0D0</div></div></div>
+</div>
+<div class="badge-row" style="margin-top:14px;">
+  <span class="badge-label">badges →</span>
+  <span class="badge" style="background:#D4FF00; color:#0D0D0D;">NUEVO</span>
+  <span class="badge" style="background:#FF6B00; color:#fff;">TOP</span>
+  <span class="badge" style="background:#74C6F4; color:#0D0D0D;">CLÁSICO</span>
+  <span class="badge" style="background:#2C2C2C; color:#fff;">RANDOM</span>
+</div>
+</body></html>

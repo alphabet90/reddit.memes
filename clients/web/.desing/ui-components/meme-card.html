@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #111; font-family: 'Space Grotesk', sans-serif; padding: 20px 22px; display: flex; flex-direction: column; gap: 20px; }
+
+  .section-label { font-size: 10px; font-weight: 600; color: #3a3a3a; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+  .row { display: flex; gap: 10px; align-items: flex-start; }
+  .divider { height: 1px; background: #1a1a1a; }
+
+  /* ── Base card ── */
+  .card {
+    border-radius: 8px; overflow: hidden; cursor: pointer;
+    position: relative; flex-shrink: 0;
+    background: #1a1a1a;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .card:hover { transform: scale(1.03); box-shadow: 0 10px 28px rgba(0,0,0,0.7); }
+  .card:hover .overlay { opacity: 1; }
+  .card:hover .hover-actions { opacity: 1; transform: translateY(0); }
+
+  /* Thumbnail — image fills the card entirely */
+  .thumb {
+    width: 100%; display: flex; align-items: center; justify-content: center;
+    font-size: 52px; position: relative;
+  }
+
+  /* Rank badge — top-left corner, no text below */
+  .rank { position: absolute; top: 7px; left: 7px; width: 24px; height: 24px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; z-index: 2; }
+  .r1 { background: #D4FF00; color: #0D0D0D; }
+  .r2 { background: #a7a7a7; color: #0D0D0D; }
+  .r3 { background: #FF6B00; color: #fff; }
+  .rn { background: rgba(0,0,0,0.55); color: #a7a7a7; backdrop-filter: blur(4px); }
+
+  /* NUEVO badge */
+  .nuevo { position: absolute; top: 7px; left: 7px; background: #D4FF00; color: #0D0D0D; font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 4px; letter-spacing: 0.07em; text-transform: uppercase; z-index: 2; }
+
+  /* Hover overlay with actions */
+  .overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.1) 55%, transparent 100%); opacity: 0; transition: opacity 0.18s; z-index: 1; }
+  .hover-actions { position: absolute; bottom: 8px; left: 8px; right: 8px; display: flex; gap: 6px; justify-content: flex-end; opacity: 0; transform: translateY(4px); transition: opacity 0.18s, transform 0.18s; z-index: 3; }
+  .action-btn { background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; color: #fff; cursor: pointer; transition: background 0.12s; }
+  .action-btn:hover { background: #D4FF00; color: #0D0D0D; border-color: #D4FF00; }
+
+  /* Views pill — bottom-left on hover */
+  .views-pill { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 600; color: #d0d0d0; display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.18s; z-index: 3; }
+  .card:hover .views-pill { opacity: 1; }
+
+  svg { display: inline; }
+</style>
+</head>
+<body>
+
+  <!-- Standard grid cards -->
+  <div>
+    <div class="section-label">Grid card — default &amp; hover</div>
+    <div class="row">
+
+      <!-- Rank 1 -->
+      <div class="card" style="width:148px;">
+        <div class="rank r1">1</div>
+        <div class="thumb" style="height:148px; background:linear-gradient(135deg,#3a2510,#5a3510);">🐕</div>
+        <div class="overlay"></div>
+        <div class="views-pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>12.3k</div>
+        <div class="hover-actions">
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+        </div>
+      </div>
+
+      <!-- Rank 2 -->
+      <div class="card" style="width:148px;">
+        <div class="rank r2">2</div>
+        <div class="thumb" style="height:148px; background:linear-gradient(135deg,#1a1a3a,#2a2a5a);">🎭</div>
+        <div class="overlay"></div>
+        <div class="views-pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>9.9k</div>
+        <div class="hover-actions">
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+        </div>
+      </div>
+
+      <!-- NUEVO -->
+      <div class="card" style="width:148px;">
+        <div class="nuevo">NUEVO</div>
+        <div class="thumb" style="height:148px; background:linear-gradient(135deg,#1a3020,#204a30);">🐱</div>
+        <div class="overlay"></div>
+        <div class="views-pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>8.1k</div>
+        <div class="hover-actions">
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+        </div>
+      </div>
+
+      <!-- Hover (simulated active) -->
+      <div class="card" style="width:148px; transform:scale(1.03); box-shadow:0 10px 28px rgba(0,0,0,0.7);">
+        <div class="rank rn">4</div>
+        <div class="thumb" style="height:148px; background:linear-gradient(135deg,#2a1a3a,#3a2a5a);">🐧</div>
+        <div class="overlay" style="opacity:1;"></div>
+        <div class="views-pill" style="opacity:1;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>7.2k</div>
+        <div class="hover-actions" style="opacity:1; transform:translateY(0);">
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+          <div class="action-btn" style="background:#D4FF00;border-color:#D4FF00;color:#0D0D0D;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Masonry variant -->
+  <div>
+    <div class="section-label">Masonry variant — variable height</div>
+    <div class="row" style="align-items:flex-start;">
+      <div class="card" style="width:148px;">
+        <div class="thumb" style="height:110px; background:linear-gradient(135deg,#3a2510,#5a3510);">🐕</div>
+        <div class="overlay"></div>
+        <div class="views-pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>54.2k</div>
+        <div class="hover-actions">
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+        </div>
+      </div>
+      <div class="card" style="width:148px;">
+        <div class="thumb" style="height:178px; background:linear-gradient(135deg,#0a1a2a,#102040);">🐱</div>
+        <div class="overlay"></div>
+        <div class="views-pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>48.7k</div>
+        <div class="hover-actions">
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+        </div>
+      </div>
+      <div class="card" style="width:148px;">
+        <div class="thumb" style="height:132px; background:linear-gradient(135deg,#1a0a2a,#2a1040);">🐸</div>
+        <div class="overlay"></div>
+        <div class="views-pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>41.3k</div>
+        <div class="hover-actions">
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+          <div class="action-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body></html>
