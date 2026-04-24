@@ -1,0 +1,81 @@
+.footer {
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  margin-top: auto;
+  padding: var(--space-12) 0 var(--space-8);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: var(--space-8);
+  margin-bottom: var(--space-8);
+}
+
+.brand {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 28px;
+  text-transform: uppercase;
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-3);
+  color: var(--fg-primary);
+}
+
+.accent {
+  color: var(--accent-primary);
+}
+
+.copy {
+  font-size: 13px;
+  color: var(--fg-secondary);
+  line-height: var(--leading-normal);
+  max-width: 24ch;
+}
+
+.colTitle {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.grid nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.grid nav a {
+  font-size: 13px;
+  color: var(--fg-primary);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.grid nav a:hover {
+  color: var(--accent-primary);
+}
+
+.bottom {
+  border-top: 1px solid var(--border-color);
+  padding-top: var(--space-6);
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 540px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

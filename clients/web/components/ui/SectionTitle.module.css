@@ -1,0 +1,17 @@
+.title {
+  font-family: var(--font-ui), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-4);
+}
+
+.icon {
+  font-size: 16px;
+  line-height: 1;
+}

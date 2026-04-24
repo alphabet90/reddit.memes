@@ -1,0 +1,9 @@
+.sidebar {
+  min-width: 0;
+}
+
+@media (max-width: 960px) {
+  .sidebar {
+    grid-column: 1 / -1;
+  }
+}
