@@ -1,0 +1,25 @@
+.page {
+  padding-top: var(--nav-height);
+  min-height: 100vh;
+}
+
+.main {
+  display: block;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--space-8);
+  padding: var(--space-8) 0;
+}
+
+.primary {
+  min-width: 0;
+}
+
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

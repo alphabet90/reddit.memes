@@ -1,0 +1,24 @@
+.logo {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 22px;
+  text-transform: uppercase;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--fg-primary);
+  display: inline-flex;
+  align-items: baseline;
+  flex-shrink: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.logo:hover {
+  opacity: 0.85;
+}
+
+.accent {
+  color: var(--accent-primary);
+}
+
+.small {
+  font-size: 18px;
+}
