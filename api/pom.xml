@@ -22,6 +22,8 @@
     <java.version>21</java.version>
     <openapi-generator.version>7.7.0</openapi-generator.version>
     <springdoc.version>2.6.0</springdoc.version>
+    <!-- Override BOM-managed Testcontainers to 1.20.x for Docker 29.x compatibility (docker-java 3.4+) -->
+    <testcontainers.version>1.20.1</testcontainers.version>
   </properties>
 
   <dependencies>
@@ -49,6 +51,16 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
+    </dependency>
+
+    <!-- Flyway database migrations (Flyway 10+ requires separate PostgreSQL module) -->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
     </dependency>
 
     <!-- Actuator for production health checks -->
@@ -89,6 +101,18 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- Testcontainers for PostgreSQL integration tests -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+
     <!-- Lombok -->
     <dependency>
       <groupId>org.projectlombok</groupId>
@@ -103,6 +127,21 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+
+      <!-- Pass Docker socket to Testcontainers running inside Surefire-forked JVM -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <environmentVariables>
+            <DOCKER_HOST>unix:///var/run/docker.sock</DOCKER_HOST>
+            <TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE>/var/run/docker.sock</TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE>
+          </environmentVariables>
+          <systemPropertyVariables>
+            <api.version>1.41</api.version>
+          </systemPropertyVariables>
+        </configuration>
       </plugin>
 
       <plugin>
