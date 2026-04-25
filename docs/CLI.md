@@ -62,6 +62,7 @@ python main.py --subreddit argentina --reset-bloom --dry-run
 | Flag | Description |
 |---|---|
 | `--reset-bloom` | Delete the Bloom filter and reprocess all posts from scratch |
+| `--restore-bloom` | Rebuild the Bloom filter from saved memes in `memes/` and exit (see [Restoring the Bloom Filter](#restoring-the-bloom-filter)) |
 
 ### Source Override
 
@@ -188,6 +189,40 @@ REPO_PATH=/path/to/your/repo
 ```
 
 CLI flags always override `.env` values.
+
+---
+
+## Restoring the Bloom Filter
+
+If `processed.bloom` is lost or corrupted the pipeline "forgets" all prior work and would re-download and re-classify every image on the next run. `--restore-bloom` reconstructs the filter from the memes that are already saved on disk without re-running the pipeline.
+
+```bash
+python main.py --restore-bloom
+```
+
+**What it recovers:**
+
+- Image URLs (`source_url` from each `.mdx` sidecar file)
+- Reddit post IDs (derived from `post_url` in each `.mdx`)
+- SHA1 content hashes (computed directly from each image file)
+
+**What it cannot recover:**
+
+- Images that were downloaded and classified as *not* a meme — those were never saved, so the pipeline may re-classify them on the next run. They will be rejected again without being saved, so there is no harm.
+
+**Typical use cases:**
+
+- Bloom filter file accidentally deleted or corrupted
+- Restoring state after cloning the repo onto a new machine (where only the `memes/` folder was synced via git)
+- Recovering from a failed `--reset-bloom` run
+
+**Combining with `--reset-bloom`:**
+
+Passing both flags first deletes the existing filter, then immediately rebuilds it from saved memes:
+
+```bash
+python main.py --reset-bloom --restore-bloom
+```
 
 ---
 
