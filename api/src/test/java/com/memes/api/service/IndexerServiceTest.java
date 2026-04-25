@@ -1,5 +1,6 @@
 package com.memes.api.service;
 
+import com.memes.api.generated.model.MemeIndexRequest;
 import com.memes.api.repository.MemeRecord;
 import com.memes.api.repository.MemeRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -147,6 +148,26 @@ class IndexerServiceTest {
 
         verify(cacheManager, atLeast(5)).getCache(anyString());
         verify(cache, atLeast(5)).clear();
+    }
+
+    @Test
+    void reindexAsync_withNullBody_dispatchesFullReindex() {
+        when(memeRepository.upsertAll(any())).thenReturn(0);
+
+        indexerService.reindexAsync(null);
+
+        verify(memeRepository).upsertAll(any());
+    }
+
+    @Test
+    void reindexAsync_withSlug_dispatchesSingleIndex() {
+        MemeIndexRequest req = new MemeIndexRequest();
+        req.setSlug("test-slug");
+        req.setCategory("test-cat");
+
+        indexerService.reindexAsync(req);
+
+        verify(memeRepository).upsert(any());
     }
 
     private void writeMinimalMdx(Path path, String category, String slug) throws IOException {

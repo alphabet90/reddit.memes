@@ -214,19 +214,13 @@ paths:
               $ref: "#/components/schemas/MemeIndexRequest"
       responses:
         "200":
-          description: Reindex completed
+          description: Reindex accepted and processing asynchronously
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ReindexResult"
+                $ref: "#/components/schemas/ReindexAccepted"
         "401":
           description: Missing or invalid X-Api-Key
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal error during indexing
           content:
             application/json:
               schema:
@@ -356,6 +350,15 @@ components:
           type: string
         post_url:
           type: string
+
+    ReindexAccepted:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [accepted]
+          example: accepted
 
     ErrorResponse:
       type: object

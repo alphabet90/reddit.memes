@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.yaml.snakeyaml.Yaml;
 
@@ -32,6 +33,20 @@ public class IndexerService {
 
     private final MemeRepository memeRepository;
     private final CacheManager cacheManager;
+
+    @Async("reindexExecutor")
+    public void reindexAsync(MemeIndexRequest body) {
+        try {
+            IndexResult result = Optional.ofNullable(body)
+                .filter(r -> r.getSlug() != null && !r.getSlug().isBlank())
+                .map(this::indexSingle)
+                .orElseGet(this::reindex);
+            log.info("Async reindex done: indexed={} durationMs={} errors={}",
+                result.indexed(), result.durationMs(), result.errors());
+        } catch (Exception e) {
+            log.error("Async reindex failed", e);
+        }
+    }
 
     public IndexResult reindex() {
         long start = System.currentTimeMillis();

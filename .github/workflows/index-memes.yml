@@ -60,8 +60,7 @@ jobs:
           changed = [l for l in open('/tmp/changed_mdx.txt').read().splitlines() if l.strip()]
           api_url = os.environ['API_BASE_URL'].rstrip('/')
           api_key = os.environ['ADMIN_API_KEY']
-          errors = []
-          indexed = 0
+          submitted = 0
 
           for mdx_path in changed:
               if not os.path.exists(mdx_path):
@@ -71,12 +70,12 @@ jobs:
                   content = open(mdx_path, encoding='utf-8').read()
                   match = re.match(r'^---\r?\n(.*?)\r?\n---', content, re.DOTALL)
                   if not match:
-                      errors.append(f"No frontmatter in {mdx_path}")
+                      print(f"WARNING: No frontmatter in {mdx_path}", file=sys.stderr)
                       continue
 
                   fm = yaml.safe_load(match.group(1))
                   if not fm:
-                      errors.append(f"Empty frontmatter in {mdx_path}")
+                      print(f"WARNING: Empty frontmatter in {mdx_path}", file=sys.stderr)
                       continue
 
                   category = fm.get('category') or ''
@@ -84,7 +83,7 @@ jobs:
                   image_raw = (fm.get('image') or '').lstrip('./')
 
                   if not slug or not category:
-                      errors.append(f"Missing slug/category in {mdx_path}")
+                      print(f"WARNING: Missing slug/category in {mdx_path}", file=sys.stderr)
                       continue
 
                   payload = {
@@ -108,28 +107,19 @@ jobs:
                       headers={'Content-Type': 'application/json', 'X-Api-Key': api_key},
                       method='POST'
                   )
-                  with urllib.request.urlopen(req, timeout=30) as resp:
-                      result = json.loads(resp.read())
-                      indexed += result.get('indexed', 1)
-                      print(f"OK [{resp.status}] {category}/{slug}")
+                  with urllib.request.urlopen(req, timeout=10) as resp:
+                      if resp.status != 200:
+                          print(f"ERROR: unexpected status {resp.status} for {mdx_path}", file=sys.stderr)
+                          sys.exit(1)
+                      submitted += 1
+                      print(f"OK [{resp.status}] {category}/{slug} — async indexing accepted")
 
               except urllib.error.HTTPError as e:
-                  msg = f"HTTP {e.code} for {mdx_path}: {e.read().decode()}"
-                  errors.append(msg)
-                  print(f"ERROR: {msg}", file=sys.stderr)
+                  print(f"ERROR: HTTP {e.code} for {mdx_path}: {e.read().decode()}", file=sys.stderr)
+                  sys.exit(1)
               except Exception as e:
-                  errors.append(f"{mdx_path}: {e}")
                   print(f"ERROR: {mdx_path}: {e}", file=sys.stderr)
+                  sys.exit(1)
 
-          print(f"\nSummary: {indexed} indexed, {len(errors)} errors")
-          if errors:
-              for err in errors:
-                  print(f"  - {err}", file=sys.stderr)
-              sys.exit(1)
+          print(f"\nSubmitted {submitted} meme(s) for async indexing")
           PYEOF
-
-      - name: Verify total meme count
-        run: |
-          stats=$(curl -sf "${{ secrets.API_BASE_URL }}/")
-          total=$(echo "$stats" | jq -r '.total_memes // 0')
-          echo "Total memes in database: $total"
