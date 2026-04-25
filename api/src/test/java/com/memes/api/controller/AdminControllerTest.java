@@ -1,7 +1,6 @@
 package com.memes.api.controller;
 
 import com.memes.api.filter.ApiKeyAuthFilter;
-import com.memes.api.service.IndexResult;
 import com.memes.api.service.IndexerService;
 import com.memes.api.service.MemeService;
 import org.junit.jupiter.api.Test;
@@ -12,9 +11,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
-
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -45,14 +43,12 @@ class AdminControllerTest {
     }
 
     @Test
-    void reindex_withCorrectKey_returns200() throws Exception {
-        when(indexerService.reindex())
-            .thenReturn(new IndexResult(5, 143L, List.of()));
+    void reindex_withCorrectKey_returns200WithAccepted() throws Exception {
+        doNothing().when(indexerService).reindexAsync(any());
 
         mockMvc.perform(post("/admin/reindex")
                 .header("X-Api-Key", "test-secret"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.indexed").value(5))
-            .andExpect(jsonPath("$.duration_ms").value(143));
+            .andExpect(jsonPath("$.status").value("accepted"));
     }
 }
