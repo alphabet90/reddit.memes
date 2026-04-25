@@ -47,7 +47,7 @@ jobs:
           echo "Found $COUNT changed MDX file(s)"
           [ "$COUNT" -gt 0 ] && cat /tmp/changed_mdx.txt || true
 
-      - name: Parse and send changed memes
+      - name: Indexing meme...
         if: steps.detect.outputs.count > 0
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
@@ -127,9 +127,3 @@ jobs:
                   print(f"  - {err}", file=sys.stderr)
               sys.exit(1)
           PYEOF
-
-      - name: Verify total meme count
-        run: |
-          stats=$(curl -sf "${{ secrets.API_BASE_URL }}/")
-          total=$(echo "$stats" | jq -r '.total_memes // 0')
-          echo "Total memes in database: $total"
