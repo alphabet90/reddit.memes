@@ -128,6 +128,22 @@ def git_commit(repo_path: Path, message: str) -> bool:
         return False
 
 
+def git_create_branch(repo_path: Path, branch_name: str) -> bool:
+    try:
+        subprocess.run(
+            ["git", "checkout", "-b", branch_name],
+            cwd=repo_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        logger.info("Created and checked out branch: %s", branch_name)
+        return True
+    except subprocess.CalledProcessError as e:
+        logger.error("git checkout -b failed: %s", e.stderr)
+        return False
+
+
 def save_and_commit_batch(
     items: list[tuple[ClassificationResult, Path]],
     repo_path: Path,

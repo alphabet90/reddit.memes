@@ -30,6 +30,11 @@ def main() -> int:
     parser.add_argument("--repo-path", type=Path, default=None, help="Path to git repo (default: current dir)")
     parser.add_argument("--dry-run", action="store_true", help="Classify without saving or committing")
     parser.add_argument(
+        "--no-branch",
+        action="store_true",
+        help="Skip auto branch creation and commit directly to the current branch",
+    )
+    parser.add_argument(
         "--reset-bloom",
         action="store_true",
         help="Delete the Bloom filter and reprocess every post from scratch",
@@ -144,6 +149,7 @@ def main() -> int:
         rebuild_content_index=args.rebuild_content_index,
         classify_workers=args.classify_workers,
         classifier=classifier,
+        create_branch=not args.no_branch,
     )
     return 0
 
