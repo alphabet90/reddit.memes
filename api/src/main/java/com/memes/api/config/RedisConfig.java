@@ -1,5 +1,7 @@
 package com.memes.api.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +16,10 @@ import java.util.Map;
 
 @Configuration
 @EnableCaching
+@RequiredArgsConstructor
 public class RedisConfig {
+
+    private final ObjectMapper objectMapper;
 
     public static final String CACHE_STATS      = "stats";
     public static final String CACHE_CATEGORIES = "categories";
@@ -27,7 +32,7 @@ public class RedisConfig {
             .entryTtl(ttl)
             .serializeValuesWith(
                 RedisSerializationContext.SerializationPair.fromSerializer(
-                    new GenericJackson2JsonRedisSerializer()))
+                    new GenericJackson2JsonRedisSerializer(objectMapper)))
             .disableCachingNullValues();
     }
 
