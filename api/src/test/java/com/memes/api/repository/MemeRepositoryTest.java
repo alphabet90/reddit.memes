@@ -1,43 +1,57 @@
 package com.memes.api.repository;
 
-import com.memes.api.config.DatabaseInitializer;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.junit.jupiter.api.AfterEach;
+import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Testcontainers
 class MemeRepositoryTest {
 
-    private HikariDataSource dataSource;
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+
+    private static HikariDataSource dataSource;
     private MemeRepository repository;
+
+    @BeforeAll
+    static void setupDatabase() {
+        HikariConfig cfg = new HikariConfig();
+        cfg.setJdbcUrl(postgres.getJdbcUrl());
+        cfg.setUsername(postgres.getUsername());
+        cfg.setPassword(postgres.getPassword());
+        cfg.setMaximumPoolSize(5);
+        dataSource = new HikariDataSource(cfg);
+
+        Flyway.configure()
+            .dataSource(dataSource)
+            .locations("classpath:db/migration")
+            .load()
+            .migrate();
+    }
+
+    @AfterAll
+    static void tearDownDatabase() {
+        dataSource.close();
+    }
 
     @BeforeEach
     void setUp() {
-        HikariConfig cfg = new HikariConfig();
-        cfg.setJdbcUrl("jdbc:sqlite::memory:");
-        cfg.setDriverClassName("org.sqlite.JDBC");
-        cfg.setMaximumPoolSize(1);
-        cfg.setConnectionInitSql("PRAGMA journal_mode=WAL;");
-        dataSource = new HikariDataSource(cfg);
-
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
-        // Reuse the same programmatic initializer to avoid delimiter issues with triggers
-        DatabaseInitializer initializer = new DatabaseInitializer(jdbc);
-        initializer.init();
-
+        jdbc.execute("TRUNCATE memes");
         repository = new MemeRepository(jdbc);
-    }
-
-    @AfterEach
-    void tearDown() {
-        dataSource.close();
     }
 
     @Test

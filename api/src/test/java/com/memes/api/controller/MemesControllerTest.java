@@ -1,5 +1,6 @@
 package com.memes.api.controller;
 
+import com.memes.api.config.LoggingProperties;
 import com.memes.api.filter.ApiKeyAuthFilter;
 import com.memes.api.generated.model.CategorySummary;
 import com.memes.api.generated.model.Meme;
@@ -24,7 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest
-@Import({MemesApiDelegateImpl.class, AdminApiDelegateImpl.class, ApiKeyAuthFilter.class})
+@Import({MemesApiDelegateImpl.class, AdminApiDelegateImpl.class, ApiKeyAuthFilter.class, LoggingProperties.class})
 @TestPropertySource(properties = {
     "memes.admin-api-key=test-secret",
     "spring.cache.type=none"
