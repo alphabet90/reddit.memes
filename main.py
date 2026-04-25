@@ -34,6 +34,11 @@ def main() -> int:
         action="store_true",
         help="Delete the Bloom filter and reprocess every post from scratch",
     )
+    parser.add_argument(
+        "--restore-bloom",
+        action="store_true",
+        help="Rebuild the Bloom filter from existing memes in memes/ (uses .mdx sidecar files) and exit",
+    )
     source_group = parser.add_mutually_exclusive_group()
     source_group.add_argument(
         "--from-file",
@@ -113,6 +118,16 @@ def main() -> int:
                 removed.append(path.name)
         if removed:
             logging.getLogger(__name__).info("State reset. Removed: %s", ", ".join(removed))
+
+    if args.restore_bloom:
+        from src.bloom_restore import restore_bloom_from_memes
+        from src.post_tracker import PostTracker
+
+        repo_path = args.repo_path or config.REPO_PATH
+        tracker = PostTracker(config.BLOOM_FILTER_FILE)
+        count = restore_bloom_from_memes(repo_path, tracker)
+        logging.getLogger(__name__).info("Restored bloom filter from %d memes", count)
+        return 0
 
     run(
         subreddit=args.subreddit or config.SUBREDDIT,
