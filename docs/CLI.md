@@ -56,6 +56,7 @@ python main.py --subreddit argentina --reset-bloom --dry-run
 | `--classify-workers N` | `4` | Number of parallel classifier subprocesses |
 | `--min-comment-upvotes N` | `0` | Also scrape images from comments with at least N upvotes |
 | `--dry-run` | off | Classify without saving files or creating git commits |
+| `--no-branch` | off | Skip auto branch creation and commit directly to the current branch |
 
 ### State
 
@@ -79,6 +80,28 @@ These flags are mutually exclusive with each other, and incompatible with `--pag
 |---|---|---|
 | `--repo-path PATH` | current directory | Path to the git repository where memes are saved |
 | `--log-level {DEBUG,INFO,WARNING,ERROR}` | `INFO` | Log verbosity |
+
+---
+
+## Branch Management
+
+By default, the pipeline creates a new git branch at the start of each run before writing any commits. This prevents memes from landing directly on `main`.
+
+**Branch naming format**: `memes/{subreddit}-{YYYYMMDD-HHMMSS}`
+
+```
+memes/argentina-20260425-143022
+```
+
+The branch is created with `git checkout -b` in the repo root. If creation fails (e.g., git is misconfigured or the repo is in a detached HEAD state), the pipeline aborts immediately rather than falling back to committing on the current branch.
+
+Branch creation is skipped when `--dry-run` is active since no commits are made.
+
+To commit directly to the current branch (old behaviour), pass `--no-branch`:
+
+```bash
+python main.py --subreddit argentina --no-branch
+```
 
 ---
 

@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 from pathlib import Path
@@ -7,7 +8,7 @@ from src.classifiers import BaseClassifier, ClaudeClassifier
 from src.downloader import compute_file_sha1, download_batch
 from src.models import PostMetadata
 from src.post_tracker import PostTracker
-from src.saver import save_and_commit_batch
+from src.saver import git_create_branch, save_and_commit_batch
 from src.scraper import fetch_comment_images, fetch_posts, fetch_single_post
 
 logger = logging.getLogger(__name__)
@@ -76,6 +77,7 @@ def run(
     rebuild_content_index: bool = False,
     classify_workers: int | None = None,
     classifier: BaseClassifier | None = None,
+    create_branch: bool = True,
 ) -> None:
     tracker = _build_tracker()
     _index_existing_memes(tracker, repo_path, force=rebuild_content_index)
@@ -85,6 +87,12 @@ def run(
         "Starting pipeline: r/%s limit=%d sort=%s timeframe=%s page=%d batch=%d dry_run=%s",
         subreddit, limit, sort, timeframe, page, batch_size, dry_run,
     )
+
+    if create_branch and not dry_run:
+        branch_name = f"memes/{subreddit}-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        if not git_create_branch(repo_path, branch_name):
+            logger.error("Aborting: could not create branch %s", branch_name)
+            return
 
     if post_url:
         posts = fetch_single_post(post_url)
