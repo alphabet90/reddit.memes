@@ -38,9 +38,8 @@ export function Footer() {
         <div className={styles.grid}>
           <div>
             <p className={styles.brand}>
-              <span>Ope</span>
-              <span className={styles.accent}>n</span>
-              <span>Meme</span>
+              <span>OPEN</span>
+              <span className={styles.accent}>MEME</span>
             </p>
             <p className={styles.copy}>
               Hecho en Argentina. Subido por la gente. Para la gente.

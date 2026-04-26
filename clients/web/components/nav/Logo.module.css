@@ -18,7 +18,3 @@
 .accent {
   color: var(--accent-primary);
 }
-
-.small {
-  font-size: 18px;
-}

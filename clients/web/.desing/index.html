@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MEMEARg — UI Kit</title>
+<title>OPENMEME — UI Kit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -35,8 +35,8 @@ html, body { height: 100%; background: var(--negro); color: var(--blanco); font-
   height: 56px; display: flex; align-items: center; padding: 0 24px; gap: 24px;
 }
 .logo { font-family: var(--font-display); font-size: 22px; text-transform: uppercase; line-height: 1; cursor: pointer; flex-shrink: 0; }
-.logo .ar { color: var(--lima); }
-.logo .sm { font-size: 18px; }
+.logo .open { color: var(--blanco); }
+.logo .meme { color: var(--lima); }
 .nav-links { display: flex; gap: 2px; flex: 1; }
 .nav-link { font-size: 13px; font-weight: 500; color: var(--gris); padding: 6px 10px; border-radius: 6px; cursor: pointer; transition: color 0.12s; white-space: nowrap; position: relative; }
 .nav-link:hover { color: var(--blanco); }
@@ -181,7 +181,7 @@ svg { display: inline; vertical-align: middle; }
 
 <!-- NAV -->
 <nav class="nav">
-  <div class="logo" onclick="showScreen('home')">ME<span class="ar">ME</span>AR<span class="sm">g</span></div>
+  <div class="logo" onclick="showScreen('home')"><span class="open">OPEN</span><span class="meme">MEME</span></div>
   <div class="nav-links">
     <span class="nav-link active" onclick="showScreen('home')">MEMES</span>
     <span class="nav-link">CATEGORÍAS ▾</span>
