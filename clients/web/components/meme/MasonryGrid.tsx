@@ -10,17 +10,6 @@ type MasonryGridProps = {
   ariaLabel: string;
 };
 
-/** Pseudo-random but deterministic heights, keyed on meme id —
- *  avoids hydration mismatches and gives the block its editorial feel. */
-function heightFor(id: string): number {
-  const heights = [110, 120, 130, 140, 160, 170, 190, 200];
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  }
-  return heights[hash % heights.length];
-}
-
 /**
  * Masonry grid with a "Ver más" CSS-clipped reveal. Collapsed state
  * shows a fade-out overlay; expanded reveals the full column flow.
@@ -38,7 +27,7 @@ export function MasonryGrid({ memes, ariaLabel }: MasonryGridProps) {
       >
         {memes.map((m) => (
           <li key={m.id} className={styles.item}>
-            <MemeCard meme={m} height={heightFor(m.id)} />
+            <MemeCard meme={m} naturalSize />
           </li>
         ))}
       </ul>

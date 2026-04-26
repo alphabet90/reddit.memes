@@ -17,6 +17,8 @@ type MemeCardProps = {
   priority?: boolean;
   /** `sizes` hint for the optimizer (responsive layout). */
   sizes?: string;
+  /** Render image at its natural aspect ratio instead of a fixed box */
+  naturalSize?: boolean;
 };
 
 function rankColor(rank: number) {
@@ -44,6 +46,7 @@ export function MemeCard({
   height,
   priority = false,
   sizes = "(max-width: 540px) 50vw, (max-width: 820px) 33vw, (max-width: 1100px) 25vw, 256px",
+  naturalSize = false,
 }: MemeCardProps) {
   const badge = rank ? rankColor(rank) : null;
   const showImage = Boolean(meme.imageUrl);
@@ -57,24 +60,43 @@ export function MemeCard({
     >
       <article className={styles.article}>
         <div
-          className={styles.image}
+          className={naturalSize ? styles.imageNatural : styles.image}
           style={{
             background: meme.placeholderGradient,
-            aspectRatio: height ? undefined : aspectRatio,
-            height: height ? `${height}px` : undefined,
+            ...(naturalSize
+              ? {}
+              : {
+                  aspectRatio: height ? undefined : aspectRatio,
+                  height: height ? `${height}px` : undefined,
+                }),
           }}
         >
           {showImage ? (
-            <Image
-              src={meme.imageUrl}
-              alt={meme.title}
-              fill
-              sizes={sizes}
-              className={styles.img}
-              priority={priority}
-              loading={priority ? "eager" : "lazy"}
-              unoptimized={meme.format === "gif"}
-            />
+            naturalSize ? (
+              <Image
+                src={meme.imageUrl}
+                alt={meme.title}
+                width={0}
+                height={0}
+                sizes={sizes}
+                className={styles.imgNatural}
+                priority={priority}
+                loading={priority ? "eager" : "lazy"}
+                unoptimized={meme.format === "gif"}
+                style={{ width: "100%", height: "auto", display: "block" }}
+              />
+            ) : (
+              <Image
+                src={meme.imageUrl}
+                alt={meme.title}
+                fill
+                sizes={sizes}
+                className={styles.img}
+                priority={priority}
+                loading={priority ? "eager" : "lazy"}
+                unoptimized={meme.format === "gif"}
+              />
+            )
           ) : (
             <span aria-hidden="true">{meme.placeholder}</span>
           )}
