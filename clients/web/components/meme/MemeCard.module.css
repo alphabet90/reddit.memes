@@ -41,6 +41,19 @@
   font-size: 48px;
   position: relative;
   color: var(--fg-primary);
+  overflow: hidden;
+}
+
+.img {
+  object-fit: cover;
+  transition: transform var(--duration-base) var(--ease-out),
+    filter var(--duration-base) var(--ease-out);
+}
+
+.card:hover .img,
+.card:focus-visible .img {
+  transform: scale(1.04);
+  filter: brightness(1.05);
 }
 
 .overlay {

@@ -1,7 +1,24 @@
 import type { NextConfig } from "next";
 
+/**
+ * Whitelist the CDN host so `next/image` can optimize remote images.
+ * Match the same default as `lib/site.ts`.
+ */
+const cdnHost = (
+  process.env.NEXT_PUBLIC_MEMES_CDN_URL ||
+  "https://cdn-openmeme.clientes-g4a.workers.dev"
+).replace(/^https?:\/\//, "");
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: cdnHost,
+        pathname: "/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

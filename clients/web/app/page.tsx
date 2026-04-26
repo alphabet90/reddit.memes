@@ -38,12 +38,14 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  // Parallel-fetch everything the home needs.
+  // Parallel-fetch everything the home needs. Each call is guarded
+  // so a transient API failure never breaks the build or the shell —
+  // ISR will refill the section on the next request.
   const [topMemes, popularMemes, categories, trending] = await Promise.all([
-    getTopMemes(5),
-    getPopularMemes(12),
-    getCategories(),
-    getTrending(),
+    getTopMemes(5).catch(() => []),
+    getPopularMemes(12).catch(() => []),
+    getCategories().catch(() => []),
+    getTrending().catch(() => []),
   ]);
 
   const itemListLd = memeItemListJsonLd(topMemes);
@@ -84,7 +86,6 @@ export default async function HomePage() {
               <Sidebar
                 categories={categories}
                 trending={trending}
-                activeCategorySlug="la-vida"
               />
             </div>
           </div>
