@@ -1,7 +1,7 @@
 # OPENMEME Website UI Kit
 
 ## Overview
-High-fidelity click-through prototype of the memearg.com website. Dark theme, interactive navigation between 3 core screens.
+High-fidelity click-through prototype of the openmeme.com website. Dark theme, interactive navigation between 3 core screens.
 
 ## Screens
 1. **Home** (`/`) — Hero section with search, filter pills, TOP memes grid, Últimos memes grid, sidebar with categories + Meme del Día
