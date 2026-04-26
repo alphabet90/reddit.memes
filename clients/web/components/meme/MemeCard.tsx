@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Meme } from "@/lib/types";
 import { CopyIcon, EyeIcon, ShareIcon } from "@/components/icons";
@@ -12,8 +13,10 @@ type MemeCardProps = {
   aspectRatio?: string;
   /** Forces fixed height on the image (masonry) */
   height?: number;
-  /** Lazy-load hint — default true */
+  /** Lazy-load hint — true for above-the-fold cards */
   priority?: boolean;
+  /** `sizes` hint for the optimizer (responsive layout). */
+  sizes?: string;
 };
 
 function rankColor(rank: number) {
@@ -24,9 +27,15 @@ function rankColor(rank: number) {
 }
 
 /**
- * MemeCard — the single visual primitive used by both the top grid
- * and the masonry grid. Wraps the whole card in an <a> so every meme
- * is indexable and keyboard-navigable.
+ * MemeCard — single visual primitive for grids and masonry. The
+ * <Link> wraps the entire surface so each card is one tap target,
+ * which also helps SEO crawl every meme via a stable href.
+ *
+ * Image strategy:
+ * - When `meme.imageUrl` is present, render <Image fill> against
+ *   the placeholder gradient (gives a graceful fallback if the
+ *   image 404s) with `loading=lazy` by default.
+ * - When absent, only the gradient + glyph render — same layout.
  */
 export function MemeCard({
   meme,
@@ -34,14 +43,16 @@ export function MemeCard({
   aspectRatio = "1 / 1",
   height,
   priority = false,
+  sizes = "(max-width: 540px) 50vw, (max-width: 820px) 33vw, (max-width: 1100px) 25vw, 256px",
 }: MemeCardProps) {
   const badge = rank ? rankColor(rank) : null;
+  const showImage = Boolean(meme.imageUrl);
 
   return (
     <Link
-      href={`/memes/${meme.slug}`}
+      href={meme.href}
       className={styles.card}
-      aria-label={`${meme.title} — ${formatCompact(meme.views)} vistas`}
+      aria-label={`${meme.title} — ${formatCompact(meme.score)} puntos`}
       prefetch={priority ? true : null}
     >
       <article className={styles.article}>
@@ -52,10 +63,21 @@ export function MemeCard({
             aspectRatio: height ? undefined : aspectRatio,
             height: height ? `${height}px` : undefined,
           }}
-          role="img"
-          aria-label={meme.title}
         >
-          <span aria-hidden="true">{meme.placeholder}</span>
+          {showImage ? (
+            <Image
+              src={meme.imageUrl}
+              alt={meme.title}
+              fill
+              sizes={sizes}
+              className={styles.img}
+              priority={priority}
+              loading={priority ? "eager" : "lazy"}
+              unoptimized={meme.format === "gif"}
+            />
+          ) : (
+            <span aria-hidden="true">{meme.placeholder}</span>
+          )}
 
           {badge ? (
             <span
@@ -74,7 +96,7 @@ export function MemeCard({
 
         <span className={styles.views}>
           <EyeIcon size={9} />
-          {formatCompact(meme.views)}
+          {formatCompact(meme.score)}
         </span>
 
         <div className={styles.actions} aria-hidden="true">

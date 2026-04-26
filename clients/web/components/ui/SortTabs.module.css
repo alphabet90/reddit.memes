@@ -1,0 +1,29 @@
+.wrap {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border-color);
+}
+
+.tab {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-secondary);
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.tab:hover {
+  color: var(--fg-primary);
+}
+
+.active,
+.active:hover {
+  background: var(--accent-primary);
+  color: var(--color-negro);
+}

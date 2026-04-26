@@ -20,7 +20,10 @@ export function TrendingList({ tags }: { tags: TrendingTag[] }) {
             key={t.tag}
             className={`${styles.row} ${i < tags.length - 1 ? styles.rowBorder : ""}`.trim()}
           >
-            <Link href={`/tag/${t.tag.replace(/^#/, "")}`} className={styles.link}>
+            <Link
+              href={`/buscar?q=${encodeURIComponent(t.tag.replace(/^#/, ""))}`}
+              className={styles.link}
+            >
               <span className={styles.rank} style={{ color: rankColor(t.rank) }}>
                 {t.rank}
               </span>
