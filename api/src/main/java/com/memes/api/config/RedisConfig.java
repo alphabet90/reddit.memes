@@ -2,7 +2,6 @@ package com.memes.api.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
-import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,10 +16,7 @@ import java.util.Map;
 
 @Configuration
 @EnableCaching
-@RequiredArgsConstructor
 public class RedisConfig {
-
-    private final ObjectMapper objectMapper;
 
     public static final String CACHE_STATS      = "stats";
     public static final String CACHE_CATEGORIES = "categories";
@@ -28,8 +24,14 @@ public class RedisConfig {
     public static final String CACHE_MEME       = "meme";
     public static final String CACHE_SEARCH     = "search";
 
-    private GenericJackson2JsonRedisSerializer redisSerializer() {
-        ObjectMapper redisMapper = objectMapper.copy()
+    // Fresh, isolated ObjectMapper — never copied from Spring's primary bean.
+    // ObjectMapper.copy() shares _typeFactory with the parent, which causes the
+    // type resolver set via activateDefaultTypingAsProperty to be ignored during
+    // deserialization, producing MismatchedInputException on START_OBJECT tokens.
+    private static final GenericJackson2JsonRedisSerializer SERIALIZER = buildSerializer();
+
+    private static GenericJackson2JsonRedisSerializer buildSerializer() {
+        ObjectMapper redisMapper = new ObjectMapper()
             .activateDefaultTypingAsProperty(
                 LaissezFaireSubTypeValidator.instance,
                 ObjectMapper.DefaultTyping.NON_FINAL,
@@ -41,7 +43,7 @@ public class RedisConfig {
         return RedisCacheConfiguration.defaultCacheConfig()
             .entryTtl(ttl)
             .serializeValuesWith(
-                RedisSerializationContext.SerializationPair.fromSerializer(redisSerializer()))
+                RedisSerializationContext.SerializationPair.fromSerializer(SERIALIZER))
             .disableCachingNullValues();
     }
 
