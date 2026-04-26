@@ -53,7 +53,8 @@ public class MemeRepository {
 
     public Optional<String> topCategory() {
         List<String> results = jdbc.queryForList(
-            "SELECT category FROM category_counts LIMIT 1", String.class);
+            "SELECT category FROM memes GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1",
+            String.class);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
@@ -65,7 +66,8 @@ public class MemeRepository {
 
     public List<CategoryRow> findAllCategories() {
         return jdbc.query(
-            "SELECT category, count, top_score FROM category_counts",
+            "SELECT category, COUNT(*) AS count, MAX(score) AS top_score " +
+            "FROM memes GROUP BY category ORDER BY count DESC",
             (rs, i) -> new CategoryRow(
                 rs.getString("category"),
                 rs.getInt("count"),

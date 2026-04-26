@@ -29,11 +29,3 @@ CREATE INDEX IF NOT EXISTS idx_memes_score     ON memes (score DESC);
 CREATE INDEX IF NOT EXISTS idx_memes_subreddit ON memes (subreddit);
 CREATE INDEX IF NOT EXISTS idx_memes_created   ON memes (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_memes_fts       ON memes USING gin (search_vector);
-
-CREATE OR REPLACE VIEW category_counts AS
-    SELECT   category,
-             COUNT(*)   AS count,
-             MAX(score) AS top_score
-    FROM     memes
-    GROUP BY category
-    ORDER BY count DESC;

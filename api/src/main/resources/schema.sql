@@ -33,12 +33,3 @@ ALTER TABLE memes ADD COLUMN IF NOT EXISTS search_vector tsvector
     ) STORED;
 
 CREATE INDEX IF NOT EXISTS idx_memes_fts ON memes USING gin(search_vector);
-
--- Category summary (replaces ORDER BY in view — callers paginate)
-CREATE OR REPLACE VIEW category_counts AS
-    SELECT category,
-           COUNT(*)   AS count,
-           MAX(score) AS top_score
-    FROM   memes
-    GROUP  BY category
-    ORDER  BY count DESC;
