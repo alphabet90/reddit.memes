@@ -23,7 +23,12 @@ export function MemeListingGrid({
     <ul className={styles.grid} aria-label={ariaLabel} role="list">
       {memes.map((m, i) => (
         <li key={m.id}>
-          <MemeCard meme={m} priority={i < priorityCount} />
+          <MemeCard
+            meme={m}
+            priority={i < priorityCount}
+            naturalSize
+            sizes="(max-width: 540px) 50vw, (max-width: 820px) 33vw, (max-width: 1100px) 25vw, 20vw"
+          />
         </li>
       ))}
     </ul>

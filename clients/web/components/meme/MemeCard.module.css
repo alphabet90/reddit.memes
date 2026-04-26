@@ -56,6 +56,29 @@
   filter: brightness(1.05);
 }
 
+.imageNatural {
+  width: 100%;
+  display: block;
+  position: relative;
+  overflow: hidden;
+  min-height: 80px;
+  color: var(--fg-primary);
+}
+
+.imgNatural {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: transform var(--duration-base) var(--ease-out),
+    filter var(--duration-base) var(--ease-out);
+}
+
+.card:hover .imgNatural,
+.card:focus-visible .imgNatural {
+  transform: scale(1.04);
+  filter: brightness(1.05);
+}
+
 .overlay {
   position: absolute;
   inset: 0;
