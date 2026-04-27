@@ -1,3 +1,14 @@
 package com.memes.api.repository;
 
-public record CategoryRow(String category, int count, int topScore) {}
+import lombok.Builder;
+
+import java.util.List;
+
+@Builder
+public record CategoryRow(
+    long id,
+    String slug,
+    int count,
+    int topScore,
+    List<CategoryTranslationRow> translations
+) {}

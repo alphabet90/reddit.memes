@@ -2,84 +2,96 @@ package com.memes.api.service;
 
 import com.memes.api.config.RedisConfig;
 import com.memes.api.generated.model.CategorySummary;
+import com.memes.api.generated.model.CategoryTranslation;
+import com.memes.api.generated.model.LocaleCode;
 import com.memes.api.generated.model.Meme;
+import com.memes.api.generated.model.MemeImage;
 import com.memes.api.generated.model.MemePage;
+import com.memes.api.generated.model.MemeTranslation;
 import com.memes.api.generated.model.Stats;
-import com.memes.api.repository.MemeRecord;
+import com.memes.api.repository.CategoryRow;
+import com.memes.api.repository.CategoryTranslationRow;
+import com.memes.api.repository.MemeImageRow;
 import com.memes.api.repository.MemeRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.memes.api.repository.MemeRepository.SearchHit;
+import com.memes.api.repository.MemeRow;
+import com.memes.api.repository.MemeTranslationRow;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class MemeService {
 
-    private static final Logger log = LoggerFactory.getLogger(MemeService.class);
-
     private final MemeRepository memeRepository;
-
-    public MemeService(MemeRepository memeRepository) {
-        this.memeRepository = memeRepository;
-    }
 
     @Cacheable(value = RedisConfig.CACHE_STATS)
     public Stats getStats() {
         Stats stats = new Stats();
-        stats.setTotalMemes(memeRepository.countAll());
-        stats.setTotalCategories(memeRepository.countCategories());
-        stats.setTotalSubreddits(memeRepository.countSubreddits());
-        memeRepository.topCategory().ifPresent(stats::setTopCategory);
-        String lastIndexed = memeRepository.findLastIndexedAt();
-        if (lastIndexed != null) {
-            stats.setIndexedAt(parseDateTime(lastIndexed));
-        }
+        memeRepository.findStats().ifPresent(row -> {
+            stats.setTotalMemes((int) row.totalMemes());
+            stats.setTotalCategories((int) row.totalCategories());
+            stats.setTotalSubreddits((int) row.totalSubreddits());
+            Optional.ofNullable(row.topCategory()).ifPresent(stats::setTopCategory);
+            Optional.ofNullable(row.indexedAt()).ifPresent(stats::setIndexedAt);
+        });
         return stats;
     }
 
-    @Cacheable(value = RedisConfig.CACHE_CATEGORIES)
-    public List<CategorySummary> listCategories() {
-        return memeRepository.findAllCategories().stream()
-            .map(row -> {
-                CategorySummary cs = new CategorySummary();
-                cs.setCategory(row.category());
-                cs.setCount(row.count());
-                cs.setTopScore(row.topScore());
-                return cs;
-            })
+    @Cacheable(value = RedisConfig.CACHE_CATEGORIES, key = "#locale")
+    public List<CategorySummary> listCategories(String locale) {
+        return memeRepository.findAllCategories(locale).stream()
+            .map(MemeService::toCategorySummary)
             .toList();
     }
 
     @Cacheable(value = RedisConfig.CACHE_MEME_LIST,
-               key = "#page + '-' + #limit + '-' + #category + '-' + #subreddit + '-' + #sort")
-    public MemePage listMemes(int page, int limit, String category, String subreddit, String sort) {
+               key = "#page + '-' + #limit + '-' + #category + '-' + #subreddit + '-' + #sort + '-' + #locale")
+    public MemePage listMemes(int page, int limit,
+                              @Nullable String category,
+                              @Nullable String subreddit,
+                              String sort,
+                              String locale) {
         int offset = page * limit;
-        List<MemeRecord> records = memeRepository.findAll(offset, limit, category, subreddit, sort);
+        List<MemeRow> rows = memeRepository.findAll(offset, limit, category, subreddit, sort, locale);
         int total = memeRepository.countFiltered(category, subreddit);
-        return toMemePage(records, page, limit, total);
+        return toMemePage(rows, page, limit, total);
     }
 
-    @Cacheable(value = RedisConfig.CACHE_MEME, key = "#category + '/' + #slug")
-    public Optional<Meme> getMeme(String category, String slug) {
-        return memeRepository.findBySlugAndCategory(slug, category).map(this::toMeme);
+    @Cacheable(value = RedisConfig.CACHE_MEME, key = "#category + '/' + #slug + '-' + #locale")
+    public Optional<Meme> getMeme(String category, String slug, String locale) {
+        return memeRepository.findBySlugAndCategory(slug, category)
+            .map(MemeService::toMeme);
     }
 
     @Cacheable(value = RedisConfig.CACHE_SEARCH,
-               key = "#query + '-' + #page + '-' + #limit")
-    public MemePage search(String query, int page, int limit) {
+               key = "#query + '-' + #page + '-' + #limit + '-' + #locale")
+    public MemePage search(String query, int page, int limit, String locale) {
         int offset = page * limit;
-        List<MemeRecord> records = memeRepository.search(query, offset, limit);
-        int total = memeRepository.countSearch(query);
-        return toMemePage(records, page, limit, total);
+        List<SearchHit> hits = memeRepository.search(query, locale, limit, offset);
+        long total = hits.isEmpty() ? 0L : hits.get(0).totalCount();
+        List<Meme> data = hits.stream().map(h -> toMeme(h.meme())).toList();
+        MemePage mp = new MemePage();
+        mp.setData(data);
+        mp.setPage(page);
+        mp.setLimit(limit);
+        mp.setTotal((int) total);
+        mp.setTotalPages(limit > 0 ? (int) Math.ceil((double) total / limit) : 0);
+        return mp;
     }
 
-    private MemePage toMemePage(List<MemeRecord> records, int page, int limit, int total) {
+    // ===== mapping ============================================================
+
+    private static MemePage toMemePage(List<MemeRow> rows, int page, int limit, int total) {
         MemePage mp = new MemePage();
-        mp.setData(records.stream().map(this::toMeme).toList());
+        mp.setData(rows.stream().map(MemeService::toMeme).toList());
         mp.setPage(page);
         mp.setLimit(limit);
         mp.setTotal(total);
@@ -87,29 +99,65 @@ public class MemeService {
         return mp;
     }
 
-    private OffsetDateTime parseDateTime(String s) {
-        try {
-            return OffsetDateTime.parse(s);
-        } catch (Exception e) {
-            log.warn("Could not parse datetime: {}", s);
-            return null;
-        }
-    }
-
-    private Meme toMeme(MemeRecord r) {
+    private static Meme toMeme(MemeRow r) {
         Meme m = new Meme();
         m.setSlug(r.slug());
-        m.setCategory(r.category());
-        m.setTitle(r.title());
-        m.setDescription(r.description());
-        m.setAuthor(r.author());
-        m.setSubreddit(r.subreddit());
+        m.setCategory(r.categorySlug());
+        m.setDefaultLocale(toLocaleCode(r.defaultLocale()));
+        m.setAuthor(r.authorUsername());
+        m.setSubreddit(r.subredditName());
         m.setScore(r.score());
-        if (r.createdAt() != null) m.setCreatedAt(parseDateTime(r.createdAt()));
+        Optional.ofNullable(r.createdAt()).ifPresent(m::setCreatedAt);
         m.setSourceUrl(r.sourceUrl());
         m.setPostUrl(r.postUrl());
-        m.setImagePath(r.imagePath());
-        m.setTags(r.tags());
+        m.setTranslations(r.translations().stream().map(MemeService::toTranslation).toList());
+        m.setImages(r.images().stream().map(MemeService::toImage).toList());
+        m.setTags(r.tagSlugs());
         return m;
+    }
+
+    private static MemeTranslation toTranslation(MemeTranslationRow t) {
+        MemeTranslation out = new MemeTranslation();
+        out.setLocale(toLocaleCode(t.locale()));
+        out.setTitle(t.title());
+        out.setDescription(t.description());
+        return out;
+    }
+
+    private static MemeImage toImage(MemeImageRow img) {
+        MemeImage out = new MemeImage();
+        out.setPath(img.path());
+        out.setWidth(img.width());
+        out.setHeight(img.height());
+        out.setBytes(img.bytes());
+        out.setMimeType(img.mimeType());
+        out.setPosition(img.position());
+        out.setIsPrimary(img.isPrimary());
+        return out;
+    }
+
+    private static CategorySummary toCategorySummary(CategoryRow row) {
+        CategorySummary cs = new CategorySummary();
+        cs.setCategory(row.slug());
+        cs.setCount(row.count());
+        cs.setTopScore(row.topScore());
+        cs.setTranslations(row.translations().stream()
+            .map(MemeService::toCategoryTranslation)
+            .toList());
+        return cs;
+    }
+
+    private static CategoryTranslation toCategoryTranslation(CategoryTranslationRow t) {
+        CategoryTranslation out = new CategoryTranslation();
+        out.setLocale(toLocaleCode(t.locale()));
+        out.setName(t.name());
+        out.setDescription(t.description());
+        return out;
+    }
+
+    private static LocaleCode toLocaleCode(@Nullable String value) {
+        return Optional.ofNullable(value)
+            .flatMap(v -> Optional.ofNullable(LocaleCode.fromValue(v)))
+            .orElse(LocaleCode.EN);
     }
 }

@@ -1,5 +1,6 @@
 package com.memes.api.controller;
 
+import com.memes.api.config.LocaleCodeConverter;
 import com.memes.api.config.LoggingProperties;
 import com.memes.api.filter.ApiKeyAuthFilter;
 import com.memes.api.service.IndexerService;
@@ -18,7 +19,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest
-@Import({MemesApiDelegateImpl.class, AdminApiDelegateImpl.class, ApiKeyAuthFilter.class, LoggingProperties.class})
+@Import({MemesApiDelegateImpl.class, AdminApiDelegateImpl.class, ApiKeyAuthFilter.class,
+    LoggingProperties.class, LocaleCodeConverter.class})
 @TestPropertySource(properties = {
     "memes.admin-api-key=test-secret",
     "spring.cache.type=none"
