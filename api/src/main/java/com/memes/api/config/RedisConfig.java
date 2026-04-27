@@ -18,11 +18,15 @@ import java.util.Map;
 @EnableCaching
 public class RedisConfig {
 
-    public static final String CACHE_STATS      = "stats";
-    public static final String CACHE_CATEGORIES = "categories";
-    public static final String CACHE_MEME_LIST  = "meme-list";
-    public static final String CACHE_MEME       = "meme";
-    public static final String CACHE_SEARCH     = "search";
+    // Cache names carry a "-v2" suffix so any V1-shaped cache entries left over
+    // from a previous deploy are ignored after the V2 schema migration. The
+    // Jackson-typed serialization in V1 is incompatible with the new DTO shape;
+    // bumping the suffix is cheaper than orchestrating a Redis FLUSHDB.
+    public static final String CACHE_STATS      = "stats-v2";
+    public static final String CACHE_CATEGORIES = "categories-v2";
+    public static final String CACHE_MEME_LIST  = "meme-list-v2";
+    public static final String CACHE_MEME       = "meme-v2";
+    public static final String CACHE_SEARCH     = "search-v2";
 
     // Fresh, isolated ObjectMapper — never copied from Spring's primary bean.
     // ObjectMapper.copy() shares _typeFactory with the parent, which causes the

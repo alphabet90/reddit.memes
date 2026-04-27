@@ -1,10 +1,15 @@
 openapi: "3.0.3"
 info:
   title: Memes API
-  version: "1.0.0"
+  version: "2.0.0"
   description: |
     REST API for browsing and searching scraped Reddit memes.
     Push changes to memes/ to trigger automatic re-indexing via GitHub Actions.
+
+    V2: Multilingual schema. Every read endpoint accepts a `?locale=` query
+    parameter. The `Meme` payload carries a `translations[]` array (one entry
+    per locale) and an `images[]` array (multiple images per meme, with
+    `is_primary` marking the lead image).
 
 servers:
   - url: /
@@ -35,6 +40,8 @@ paths:
       tags: [memes]
       operationId: listCategories
       summary: All categories with meme counts and top score
+      parameters:
+        - $ref: "#/components/parameters/LocaleParam"
       responses:
         "200":
           description: OK
@@ -78,6 +85,7 @@ paths:
             type: string
             enum: [score, created_at, title]
             default: score
+        - $ref: "#/components/parameters/LocaleParam"
       responses:
         "200":
           description: OK
@@ -116,6 +124,7 @@ paths:
             type: string
             enum: [score, created_at, title]
             default: score
+        - $ref: "#/components/parameters/LocaleParam"
       responses:
         "200":
           description: OK
@@ -146,6 +155,7 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: "#/components/parameters/LocaleParam"
       responses:
         "200":
           description: OK
@@ -164,7 +174,7 @@ paths:
     get:
       tags: [memes]
       operationId: searchMemes
-      summary: Full-text search across title and description (FTS5)
+      summary: Locale-aware full-text search across title and description
       parameters:
         - name: q
           in: query
@@ -185,6 +195,7 @@ paths:
             default: 20
             minimum: 1
             maximum: 100
+        - $ref: "#/components/parameters/LocaleParam"
       responses:
         "200":
           description: OK
@@ -233,7 +244,20 @@ components:
       in: header
       name: X-Api-Key
 
+  parameters:
+    LocaleParam:
+      name: locale
+      in: query
+      description: Locale for translatable fields. Defaults to `en`.
+      schema:
+        $ref: "#/components/schemas/LocaleCode"
+
   schemas:
+    LocaleCode:
+      type: string
+      enum: [en, es, pt, fr, de, ar]
+      default: en
+
     Stats:
       type: object
       properties:
@@ -249,43 +273,106 @@ components:
           type: string
           format: date-time
 
+    CategoryTranslation:
+      type: object
+      required: [locale, name]
+      properties:
+        locale:
+          $ref: "#/components/schemas/LocaleCode"
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+
     CategorySummary:
       type: object
+      required: [category, count, top_score]
       properties:
         category:
           type: string
+          description: URL-safe slug for the category.
         count:
           type: integer
         top_score:
           type: integer
+        translations:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryTranslation"
+
+    MemeTranslation:
+      type: object
+      required: [locale, title]
+      properties:
+        locale:
+          $ref: "#/components/schemas/LocaleCode"
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    MemeImage:
+      type: object
+      required: [path, position, is_primary]
+      properties:
+        path:
+          type: string
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        bytes:
+          type: integer
+          format: int64
+          nullable: true
+        mime_type:
+          type: string
+          nullable: true
+        position:
+          type: integer
+        is_primary:
+          type: boolean
 
     Meme:
       type: object
-      required: [slug, category, title]
+      required: [slug, category, default_locale, translations, images]
       properties:
         slug:
           type: string
         category:
           type: string
-        title:
-          type: string
-        description:
-          type: string
+        default_locale:
+          $ref: "#/components/schemas/LocaleCode"
         author:
           type: string
+          nullable: true
         subreddit:
           type: string
+          nullable: true
         score:
           type: integer
         created_at:
           type: string
           format: date-time
+          nullable: true
         source_url:
           type: string
+          nullable: true
         post_url:
           type: string
-        image_path:
-          type: string
+          nullable: true
+        translations:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemeTranslation"
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemeImage"
         tags:
           type: array
           items:
@@ -293,6 +380,7 @@ components:
 
     MemePage:
       type: object
+      required: [data, page, limit, total, total_pages]
       properties:
         data:
           type: array
@@ -322,16 +410,14 @@ components:
 
     MemeIndexRequest:
       type: object
-      required: [slug, category]
+      required: [slug, category, translations]
       properties:
         slug:
           type: string
         category:
           type: string
-        title:
-          type: string
-        description:
-          type: string
+        default_locale:
+          $ref: "#/components/schemas/LocaleCode"
         author:
           type: string
         subreddit:
@@ -340,16 +426,26 @@ components:
           type: integer
           format: int32
           default: 0
-        imagePath:
-          type: string
-        tags:
-          type: array
-          items:
-            type: string
         source_url:
           type: string
         post_url:
           type: string
+        created_at:
+          type: string
+          format: date-time
+        translations:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/MemeTranslation"
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemeImage"
+        tags:
+          type: array
+          items:
+            type: string
 
     ReindexAccepted:
       type: object
