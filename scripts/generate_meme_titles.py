@@ -1,26 +1,31 @@
 #!/usr/bin/env python3
-"""Generate canonical meme titles from descriptions using the Claude CLI.
+"""Generate canonical meme titles from description and slug.
 
 The title field currently holds the Reddit post title, which is wrong.
-This script derives the actual meme name from the description + slug,
-producing locale-appropriate titles:
+This script derives the actual meme name from the description + slug:
 
-  - "es" locale  → Spanish meme name (or English if that's the common name in AR)
-  - "en" locale  → English meme name
-  - "intl" (both en+es) → two titles, one per locale
+  1. If the description contains a quoted text caption (e.g. "with Spanish text
+     saying 'Demasiado cine'"), that caption becomes the title — it's the phrase
+     that defines the meme.
+  2. Otherwise the slug is converted to Title Case to produce a clean template
+     name (e.g. "flik-ant-leaving-with-bindle" → "Flik Ant Leaving with Bindle").
+
+Locale handling:
+  - "es" locale  → extract Spanish caption first, then slug Title Case
+  - "en" locale  → slug Title Case (canonical English template name)
+  - "intl" (both en+es) → title_en from slug, title_es from caption or slug
+
+Idempotent: re-running produces identical output.
 
 Usage:
     python scripts/generate_meme_titles.py memes/
     python scripts/generate_meme_titles.py memes/ --dry-run
-    python scripts/generate_meme_titles.py memes/ --batch-size 40
 """
 from __future__ import annotations
 
 import argparse
-import json
-import subprocess
+import re
 import sys
-import time
 from pathlib import Path
 from typing import Any
 
@@ -28,26 +33,59 @@ import yaml
 
 FRONTMATTER_DELIMITER = "---"
 
-_SYSTEM_PROMPT = """\
-You are an expert in internet memes and Argentine pop culture.
-You will receive a JSON array of meme records. For each record return the
-CANONICAL NAME of the meme template — NOT the Reddit post title used to share it.
+# Matches quoted text after "with [Spanish] text/caption [saying|asking|...]"
+# Captures content inside single or double quotes.
+_CAPTION_RE = re.compile(
+    r"(?:with (?:Spanish |the )?(?:text|caption)|captioned(?: with)?|"
+    r"overlaid text|text overlay|text reading|text that (?:says?|reads?))"
+    r"(?:\s+(?:saying|asking|that says?|reading|showing))?"
+    r"\s*['‘’“”](.+?)['‘’“”]",
+    re.IGNORECASE,
+)
 
-Rules:
-- The name identifies the meme FORMAT/TEMPLATE, not the specific Argentine usage.
-- Keep titles SHORT: 2–6 words, title-cased.
-- For locale "es": use the name as known in Argentina/Spanish-speaking context.
-  Use Spanish when that is the natural name (e.g. "La Gaviota Inhalando").
-  Use English when the meme is universally known by its English name (e.g. "Always Has Been").
-  If the meme is defined by a Spanish text caption shown in the image, use that caption.
-- For locale "en": use the canonical English meme name.
-- For locale "intl": provide BOTH title_en and title_es.
-- Return ONLY a JSON array — no markdown fences, no explanation.
+# Articles/prepositions kept lowercase in English title case (when not first word).
+_LOWER_EN = frozenset(
+    "a an the in on at of to for and or but with from by as".split()
+)
 
-Output schema per item:
-  locale "es" or "en": {"slug": "...", "title": "..."}
-  locale "intl":        {"slug": "...", "title_en": "...", "title_es": "..."}
-"""
+
+def _slug_to_title(slug: str) -> str:
+    words = slug.replace("-", " ").split()
+    return " ".join(
+        w.capitalize() if i == 0 or w.lower() not in _LOWER_EN else w.lower()
+        for i, w in enumerate(words)
+    )
+
+
+def _extract_caption(description: str) -> str | None:
+    m = _CAPTION_RE.search(description)
+    if not m:
+        return None
+    caption = m.group(1).strip()
+    # Discard very long captions (they're sentence descriptions, not meme names).
+    if len(caption) > 60:
+        return None
+    # Capitalize first letter while preserving the rest of the casing.
+    return caption[0].upper() + caption[1:] if caption else caption
+
+
+def _make_title(slug: str, description: str, locale: str) -> dict[str, str]:
+    """Return {"title": ...} or {"title_en": ..., "title_es": ...}."""
+    slug_title = _slug_to_title(slug)
+    caption = _extract_caption(description)
+
+    if locale == "intl":
+        return {
+            "title_en": slug_title,
+            "title_es": caption or slug_title,
+        }
+    if locale == "es":
+        return {"title": caption or slug_title}
+    # "en"
+    return {"title": slug_title}
+
+
+# ── MDX I/O ──────────────────────────────────────────────────────────────────
 
 
 def parse_mdx(path: Path) -> tuple[dict[str, Any], str] | None:
@@ -80,156 +118,69 @@ def detect_locale(fm: dict[str, Any]) -> str:
     return "es" if "es" in t else "en"
 
 
-def call_claude(records: list[dict]) -> list[dict]:
-    """Send a batch to the claude CLI and return the parsed JSON list."""
-    records_json = json.dumps(records, ensure_ascii=False, indent=2)
-    prompt = (
-        f"{_SYSTEM_PROMPT}\n\nMeme records:\n{records_json}"
-    )
-
-    for attempt in range(3):
-        try:
-            proc = subprocess.run(
-                [
-                    "claude",
-                    "-p", prompt,
-                    "--dangerously-skip-permissions",
-                    "--output-format", "text",
-                    "--no-session-persistence",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=180,
-            )
-            if proc.returncode != 0:
-                raise RuntimeError(proc.stderr[:300])
-
-            raw = proc.stdout.strip()
-            # Strip markdown code fences if present
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[1]
-                raw = raw.rsplit("```", 1)[0]
-
-            return json.loads(raw)
-        except json.JSONDecodeError as exc:
-            if attempt == 2:
-                raise RuntimeError(f"JSON parse error: {exc}\nRaw output:\n{raw[:500]}")
-        except subprocess.TimeoutExpired:
-            if attempt == 2:
-                raise RuntimeError("claude CLI timed out")
-        except RuntimeError:
-            if attempt == 2:
-                raise
-
-        wait = 2 ** attempt
-        print(f"    retrying in {wait}s…", file=sys.stderr)
-        time.sleep(wait)
-
-    return []
-
-
-def apply_titles(
-    fm: dict[str, Any],
-    body: str,
-    result: dict,
-    locale: str,
-) -> str:
-    new_fm = dict(fm)
+def transform(fm: dict[str, Any]) -> dict[str, Any]:
+    locale = detect_locale(fm)
     translations = {k: dict(v) for k, v in fm.get("translations", {}).items()}
 
-    if locale == "intl":
-        title_en = result.get("title_en") or result.get("title", "")
-        title_es = result.get("title_es") or result.get("title", "")
-        translations.setdefault("en", {})["title"] = title_en
-        translations.setdefault("es", {})["title"] = title_es
-    elif locale == "es":
-        translations.setdefault("es", {})["title"] = result.get("title", "")
-    else:
-        translations.setdefault("en", {})["title"] = result.get("title", "")
+    slug: str = fm.get("slug", "")
+    data = translations.get("es") or translations.get("en") or {}
+    description: str = data.get("description", "") or ""
 
+    titles = _make_title(slug, description, locale)
+
+    if locale == "intl":
+        translations["en"]["title"] = titles["title_en"]
+        translations["es"]["title"] = titles["title_es"]
+    elif locale == "es":
+        translations["es"]["title"] = titles["title"]
+    else:
+        translations["en"]["title"] = titles["title"]
+
+    new_fm = dict(fm)
     new_fm["translations"] = translations
-    return write_mdx(new_fm, body)
+    return new_fm
+
+
+# ── CLI ───────────────────────────────────────────────────────────────────────
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path, help="memes/ directory to walk")
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--batch-size", type=int, default=40)
     args = parser.parse_args()
 
     if not args.root.is_dir():
         print(f"Not a directory: {args.root}", file=sys.stderr)
         return 1
 
-    all_files: list[tuple[Path, dict[str, Any], str, str]] = []
+    updated = skipped = 0
+
     for mdx in sorted(args.root.rglob("*.mdx")):
         parsed = parse_mdx(mdx)
         if parsed is None:
+            skipped += 1
             continue
         fm, body = parsed
-        all_files.append((mdx, fm, body, detect_locale(fm)))
+        new_fm = transform(fm)
+        rendered = write_mdx(new_fm, body)
 
-    total = len(all_files)
-    total_batches = (total + args.batch_size - 1) // args.batch_size
-    print(f"Processing {total} files in {total_batches} batches of {args.batch_size}…",
-          file=sys.stderr)
-
-    updated = errors = 0
-
-    for batch_start in range(0, total, args.batch_size):
-        batch = all_files[batch_start: batch_start + args.batch_size]
-        batch_num = batch_start // args.batch_size + 1
-        print(f"  Batch {batch_num}/{total_batches} ({len(batch)} files)…",
-              file=sys.stderr)
-
-        records = []
-        for path, fm, body, locale in batch:
-            t = fm.get("translations", {})
-            data = t.get("es") or t.get("en") or {}
-            records.append({
-                "slug": fm["slug"],
-                "category": fm.get("category", ""),
-                "locale": locale,
-                "description": data.get("description", ""),
-            })
-
-        try:
-            results = call_claude(records)
-        except Exception as exc:
-            print(f"  ERROR in batch {batch_num}: {exc}", file=sys.stderr)
-            errors += len(batch)
-            continue
-
-        result_map = {r["slug"]: r for r in results}
-
-        for path, fm, body, locale in batch:
-            slug = fm["slug"]
-            result = result_map.get(slug)
-            if not result:
-                print(f"  WARN: missing result for {slug}", file=sys.stderr)
-                errors += 1
-                continue
-
-            rendered = apply_titles(fm, body, result, locale)
-
-            if args.dry_run:
-                t = (fm.get("translations", {}).get("es")
-                     or fm.get("translations", {}).get("en") or {})
-                new_title = result.get("title") or result.get("title_es", "")
-                old_title = t.get("title", "")[:50]
-                print(f"  [{locale}] {path.name}")
-                print(f"    was: {old_title!r}")
-                print(f"    now: {new_title!r}")
+        if args.dry_run:
+            locale = detect_locale(fm)
+            t = new_fm["translations"]
+            if locale == "intl":
+                print(f"[intl] {mdx.name}")
+                print(f"  en: {t['en']['title']!r}")
+                print(f"  es: {t['es']['title']!r}")
             else:
-                path.write_text(rendered, encoding="utf-8")
-            updated += 1
+                key = "es" if "es" in t else "en"
+                print(f"[{locale}] {mdx.name}: {t[key]['title']!r}")
+        else:
+            mdx.write_text(rendered, encoding="utf-8")
+        updated += 1
 
-        if batch_start + args.batch_size < total:
-            time.sleep(0.3)
-
-    print(f"Done. updated={updated} errors={errors}", file=sys.stderr)
-    return 0 if errors == 0 else 1
+    print(f"Done. updated={updated} skipped={skipped}", file=sys.stderr)
+    return 0
 
 
 if __name__ == "__main__":
