@@ -53,6 +53,8 @@ class IndexerServiceTest {
         when(memeRepository.upsertAll(any())).thenReturn(0);
     }
 
+    // ===== V2 format ==========================================================
+
     @Test
     void parseMdx_validV2Frontmatter_returnsRecord() throws IOException {
         Path categoryDir = tempDir.resolve("argentina-football");
@@ -124,7 +126,7 @@ class IndexerServiceTest {
     }
 
     @Test
-    void parseMdx_missingTranslationsBlock_returnsEmpty() throws IOException {
+    void parseMdx_missingTranslationsBlockAndNoTitle_returnsEmpty() throws IOException {
         Path mdx = tempDir.resolve("no-translations.mdx");
         Files.writeString(mdx, """
             ---
@@ -218,6 +220,219 @@ class IndexerServiceTest {
         assertThat(images.get(0).isPrimary()).isTrue();
     }
 
+    // ===== Flat format ========================================================
+
+    @Test
+    void parseMdx_flatFormatBaseFile_treatedAsEnglish() throws IOException {
+        Path categoryDir = tempDir.resolve("reaction");
+        Files.createDirectories(categoryDir);
+        Path mdx = categoryDir.resolve("homer-bar.mdx");
+        Files.writeString(mdx, """
+            ---
+            title: "Homer Walks Into Bar"
+            description: "Homer Simpson enters a bar looking confused"
+            author: redditor1
+            subreddit: argentina
+            category: reaction
+            slug: homer-bar
+            score: 500
+            created_at: "2025-01-01T00:00:00Z"
+            source_url: https://i.redd.it/homer.jpg
+            post_url: https://reddit.com/r/argentina/comments/abc
+            image: "./homer-bar.jpg"
+            tags: [simpsons, reaction]
+            ---
+
+            # Homer Walks Into Bar
+            """);
+
+        Optional<MemeUpsert> result = indexerService.parseMdx(mdx);
+
+        assertThat(result).isPresent();
+        MemeUpsert u = result.get();
+        assertThat(u.slug()).isEqualTo("homer-bar");
+        assertThat(u.defaultLocale()).isEqualTo("en");
+        assertThat(u.translations()).hasSize(1);
+        assertThat(u.translations().get(0).locale()).isEqualTo("en");
+        assertThat(u.translations().get(0).title()).isEqualTo("Homer Walks Into Bar");
+        assertThat(u.images().get(0).path()).isEqualTo("memes/reaction/homer-bar.jpg");
+        assertThat(u.tagSlugs()).containsExactlyInAnyOrder("simpsons", "reaction");
+    }
+
+    @Test
+    void parseMdx_flatFormatLocaleFile_extractsLocaleFromFilename() throws IOException {
+        Path categoryDir = tempDir.resolve("reaction");
+        Files.createDirectories(categoryDir);
+        Path mdx = categoryDir.resolve("homer-bar.es-AR.mdx");
+        Files.writeString(mdx, """
+            ---
+            title: "Homer Entra Al Bar"
+            description: "Homer Simpson entra a un bar con cara de confundido"
+            author: redditor1
+            subreddit: argentina
+            category: reaction
+            slug: homer-bar
+            score: 500
+            created_at: "2025-01-01T00:00:00Z"
+            source_url: https://i.redd.it/homer.jpg
+            post_url: https://reddit.com/r/argentina/comments/abc
+            image: "./homer-bar.jpg"
+            tags: [simpsons, reaccion]
+            ---
+            """);
+
+        Optional<MemeUpsert> result = indexerService.parseMdx(mdx);
+
+        assertThat(result).isPresent();
+        MemeUpsert u = result.get();
+        assertThat(u.defaultLocale()).isEqualTo("es");
+        assertThat(u.translations()).hasSize(1);
+        assertThat(u.translations().get(0).locale()).isEqualTo("es");
+        assertThat(u.translations().get(0).title()).isEqualTo("Homer Entra Al Bar");
+        // Image path must use the base stem, not the locale stem
+        assertThat(u.images().get(0).path()).isEqualTo("memes/reaction/homer-bar.jpg");
+    }
+
+    @Test
+    void parseMdx_flatFormatLocaleFile_ptBR_normalizedToPt() throws IOException {
+        Path categoryDir = tempDir.resolve("humor");
+        Files.createDirectories(categoryDir);
+        Path mdx = categoryDir.resolve("pepe-cry.pt-BR.mdx");
+        Files.writeString(mdx, """
+            ---
+            title: "Pepe Chorando"
+            category: humor
+            slug: pepe-cry
+            ---
+            """);
+
+        Optional<MemeUpsert> result = indexerService.parseMdx(mdx);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().translations().get(0).locale()).isEqualTo("pt");
+    }
+
+    // ===== Locale grouping (scanMdxFiles / parseMdxGroup) ====================
+
+    @Test
+    void parseMdxGroup_basePlusLocale_mergesTranslations() throws IOException {
+        Path categoryDir = tempDir.resolve("reaction");
+        Files.createDirectories(categoryDir);
+
+        Path baseMdx = categoryDir.resolve("homer-bar.mdx");
+        Files.writeString(baseMdx, """
+            ---
+            title: "Homer Walks Into Bar"
+            description: "Homer enters a bar"
+            category: reaction
+            slug: homer-bar
+            score: 500
+            image: "./homer-bar.jpg"
+            tags: [simpsons]
+            ---
+            """);
+
+        Path esMdx = categoryDir.resolve("homer-bar.es-AR.mdx");
+        Files.writeString(esMdx, """
+            ---
+            title: "Homer Entra Al Bar"
+            description: "Homer entra a un bar"
+            category: reaction
+            slug: homer-bar
+            score: 500
+            image: "./homer-bar.jpg"
+            tags: [simpsons, reaccion]
+            ---
+            """);
+
+        Path baseKey = categoryDir.resolve("homer-bar.mdx");
+        Optional<MemeUpsert> result = indexerService.parseMdxGroup(baseKey, List.of(baseMdx, esMdx));
+
+        assertThat(result).isPresent();
+        MemeUpsert u = result.get();
+        assertThat(u.slug()).isEqualTo("homer-bar");
+        assertThat(u.defaultLocale()).isEqualTo("en");
+        assertThat(u.translations()).extracting(MemeTranslationRow::locale)
+            .containsExactlyInAnyOrder("en", "es");
+        assertThat(u.images()).hasSize(1);
+        assertThat(u.images().get(0).path()).isEqualTo("memes/reaction/homer-bar.jpg");
+    }
+
+    @Test
+    void parseMdxGroup_localeOnlyNoBase_parsesSuccessfully() throws IOException {
+        Path categoryDir = tempDir.resolve("reaction");
+        Files.createDirectories(categoryDir);
+
+        Path esMdx = categoryDir.resolve("homer-bar.es-AR.mdx");
+        Files.writeString(esMdx, """
+            ---
+            title: "Homer Entra Al Bar"
+            category: reaction
+            slug: homer-bar
+            ---
+            """);
+
+        Path baseKey = categoryDir.resolve("homer-bar.mdx");
+        Optional<MemeUpsert> result = indexerService.parseMdxGroup(baseKey, List.of(esMdx));
+
+        assertThat(result).isPresent();
+        assertThat(result.get().translations().get(0).locale()).isEqualTo("es");
+    }
+
+    @Test
+    void scanMdxFiles_groupsLocaleFilesWithBase_producesOneMemePerSlug() throws IOException {
+        Path categoryDir = tempDir.resolve("reaction");
+        Files.createDirectories(categoryDir);
+
+        writeMinimalMdx(categoryDir.resolve("meme1.mdx"), "reaction", "meme1");
+        // Locale sidecar — must be merged into meme1, not indexed as a separate meme
+        Path localeMdx = categoryDir.resolve("meme1.es-AR.mdx");
+        Files.writeString(localeMdx, """
+            ---
+            title: "Meme Uno"
+            category: reaction
+            slug: meme1
+            ---
+            """);
+
+        when(memeRepository.upsertAll(any())).thenReturn(1);
+        IndexResult result = indexerService.reindex();
+
+        assertThat(result.indexed()).isEqualTo(1);
+        assertThat(result.errors()).isEmpty();
+    }
+
+    // ===== normalizeLocale helper =============================================
+
+    @Test
+    void normalizeLocale_regionalVariant_stripsRegion() {
+        assertThat(IndexerService.normalizeLocale("es-AR")).isEqualTo("es");
+        assertThat(IndexerService.normalizeLocale("pt-BR")).isEqualTo("pt");
+        assertThat(IndexerService.normalizeLocale("en-US")).isEqualTo("en");
+    }
+
+    @Test
+    void normalizeLocale_unknownLanguage_fallsBackToEn() {
+        assertThat(IndexerService.normalizeLocale("jp")).isEqualTo("en");
+        assertThat(IndexerService.normalizeLocale(null)).isEqualTo("en");
+    }
+
+    @Test
+    void extractLocaleFromFilename_localeFile_returnsLocale() {
+        assertThat(IndexerService.extractLocaleFromFilename("slug.es-AR.mdx"))
+            .hasValue("es-AR");
+        assertThat(IndexerService.extractLocaleFromFilename("slug.pt.mdx"))
+            .hasValue("pt");
+    }
+
+    @Test
+    void extractLocaleFromFilename_baseFile_returnsEmpty() {
+        assertThat(IndexerService.extractLocaleFromFilename("slug.mdx")).isEmpty();
+        assertThat(IndexerService.extractLocaleFromFilename("some-meme.mdx")).isEmpty();
+    }
+
+    // ===== reindex / async ====================================================
+
     @Test
     void reindex_callsRefreshStatsAndInvalidatesCaches() throws IOException {
         Path cat1 = tempDir.resolve("argentina-football");
@@ -273,6 +488,8 @@ class IndexerServiceTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("translations");
     }
+
+    // ===== helpers ============================================================
 
     private void writeMinimalMdx(Path path, String category, String slug) throws IOException {
         Files.writeString(path, String.format("""

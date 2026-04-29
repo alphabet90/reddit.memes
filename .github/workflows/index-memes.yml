@@ -47,7 +47,7 @@ jobs:
           echo "Found $COUNT changed MDX file(s)"
           [ "$COUNT" -gt 0 ] && cat /tmp/changed_mdx.txt || true
 
-      - name: Indexing meme...
+      - name: Indexing memes...
         if: steps.detect.outputs.count > 0
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
@@ -57,68 +57,179 @@ jobs:
           import yaml, json, re, os, sys
           import urllib.request, urllib.error
 
+          # Matches locale-specific MDX filenames: slug.es-AR.mdx, slug.pt.mdx
+          # Group 1 = base stem, Group 2 = raw locale tag
+          LOCALE_MDX = re.compile(r'^(.+)\.([a-z]{2}(?:-[A-Z]{2})?)\.mdx$')
+
+          def base_stem(filename):
+              """'slug.es-AR.mdx' -> 'slug',  'slug.mdx' -> 'slug'"""
+              m = LOCALE_MDX.match(filename)
+              return m.group(1) if m else filename[:-4]
+
+          def file_locale(filename):
+              """'slug.es-AR.mdx' -> 'es-AR',  'slug.mdx' -> None (means 'en')"""
+              m = LOCALE_MDX.match(filename)
+              return m.group(2) if m else None
+
+          def lang_code(locale):
+              """'es-AR' -> 'es',  'pt-BR' -> 'pt',  None -> 'en'"""
+              if not locale:
+                  return 'en'
+              return locale.split('-')[0].lower()
+
+          def find_all_mdx_for_meme(dir_part, stem):
+              """Return all MDX files (base + locale variants) for the given stem."""
+              try:
+                  files = []
+                  for fname in sorted(os.listdir(dir_part)):
+                      if not fname.endswith('.mdx'):
+                          continue
+                      if fname == f'{stem}.mdx' or (
+                          fname.startswith(f'{stem}.') and LOCALE_MDX.match(fname)
+                      ):
+                          fpath = os.path.join(dir_part, fname)
+                          if os.path.isfile(fpath):
+                              files.append(fpath)
+                  return files
+              except OSError:
+                  return []
+
+          def parse_frontmatter(path):
+              content = open(path, encoding='utf-8').read()
+              match = re.match(r'^---\r?\n(.*?)\r?\n---', content, re.DOTALL)
+              if not match:
+                  return None
+              return yaml.safe_load(match.group(1))
+
           changed = [l for l in open('/tmp/changed_mdx.txt').read().splitlines() if l.strip()]
           api_url = os.environ['API_BASE_URL'].rstrip('/')
           api_key = os.environ['ADMIN_API_KEY']
-          submitted = 0
+
+          # Deduplicate: group changed files by (dir, base_stem) so that a push
+          # touching both slug.mdx and slug.es-AR.mdx produces ONE API call.
+          seen_bases = set()
+          work_items = []
 
           for mdx_path in changed:
-              if not os.path.exists(mdx_path):
-                  print(f"Skipping deleted file: {mdx_path}")
+              dir_part = os.path.dirname(mdx_path)
+              fname    = os.path.basename(mdx_path)
+              stem     = base_stem(fname)
+              key      = (dir_part, stem)
+              if key in seen_bases:
                   continue
+              seen_bases.add(key)
+
+              all_files = find_all_mdx_for_meme(dir_part, stem)
+              if all_files:
+                  work_items.append((dir_part, stem, all_files))
+
+          submitted = 0
+
+          for dir_part, stem, all_files in work_items:
+              # Use the base (no-locale) file as the source of meme metadata;
+              # fall back to the first available file if base doesn't exist.
+              base_file = os.path.join(dir_part, f'{stem}.mdx')
+              meta_file = base_file if os.path.isfile(base_file) else all_files[0]
+
               try:
-                  content = open(mdx_path, encoding='utf-8').read()
-                  match = re.match(r'^---\r?\n(.*?)\r?\n---', content, re.DOTALL)
-                  if not match:
-                      print(f"WARNING: No frontmatter in {mdx_path}", file=sys.stderr)
-                      continue
+                  meta_fm = parse_frontmatter(meta_file)
+              except Exception as e:
+                  print(f"ERROR reading {meta_file}: {e}", file=sys.stderr)
+                  sys.exit(1)
 
-                  fm = yaml.safe_load(match.group(1))
+              if not meta_fm:
+                  print(f"WARNING: No frontmatter in {meta_file}", file=sys.stderr)
+                  continue
+
+              category  = meta_fm.get('category') or ''
+              slug_val  = meta_fm.get('slug') or ''
+              image_raw = (meta_fm.get('image') or '').lstrip('./')
+
+              if not slug_val or not category:
+                  print(f"WARNING: Missing slug/category in {meta_file}", file=sys.stderr)
+                  continue
+
+              # Collect one translation per language code across all locale files.
+              translations = []
+              seen_locales = set()
+
+              for fpath in all_files:
+                  try:
+                      fm = parse_frontmatter(fpath)
+                  except Exception as e:
+                      print(f"WARNING: Could not parse {fpath}: {e}", file=sys.stderr)
+                      continue
                   if not fm:
-                      print(f"WARNING: Empty frontmatter in {mdx_path}", file=sys.stderr)
                       continue
 
-                  category = fm.get('category') or ''
-                  slug = fm.get('slug') or ''
-                  image_raw = (fm.get('image') or '').lstrip('./')
+                  raw_locale = file_locale(os.path.basename(fpath))
+                  lc = lang_code(raw_locale)
 
-                  if not slug or not category:
-                      print(f"WARNING: Missing slug/category in {mdx_path}", file=sys.stderr)
+                  if lc in seen_locales:
                       continue
+                  seen_locales.add(lc)
 
-                  payload = {
-                      'slug':        slug,
-                      'category':    category,
-                      'title':       fm.get('title') or '',
-                      'description': fm.get('description') or '',
-                      'author':      fm.get('author') or '',
-                      'subreddit':   fm.get('subreddit') or 'argentina',
-                      'score':       int(fm.get('score') or 0),
-                      'imagePath':   f"memes/{category}/{image_raw}" if image_raw else f"memes/{category}/{slug}.jpg",
-                      'tags':        [str(t) for t in (fm.get('tags') or [])],
-                      'source_url':  fm.get('source_url') or '',
-                      'post_url':    fm.get('post_url') or '',
-                  }
+                  title       = fm.get('title') or ''
+                  description = fm.get('description') or ''
+                  if title:
+                      translations.append({
+                          'locale':      lc,
+                          'title':       title,
+                          'description': description,
+                      })
 
-                  body = json.dumps(payload).encode('utf-8')
-                  req = urllib.request.Request(
-                      f"{api_url}/admin/reindex",
-                      data=body,
-                      headers={'Content-Type': 'application/json', 'X-Api-Key': api_key},
-                      method='POST'
-                  )
+              if not translations:
+                  print(f"WARNING: No translations found for {dir_part}/{stem}", file=sys.stderr)
+                  continue
+
+              # The default locale is 'en' when the base (no-locale) file exists,
+              # otherwise the locale of the first available file.
+              default_locale = 'en' if os.path.isfile(base_file) else translations[0]['locale']
+
+              image_path = (
+                  f"memes/{category}/{image_raw}"
+                  if image_raw
+                  else f"memes/{category}/{slug_val}.jpg"
+              )
+
+              payload = {
+                  'slug':           slug_val,
+                  'category':       category,
+                  'default_locale': default_locale,
+                  'author':         meta_fm.get('author') or '',
+                  'subreddit':      meta_fm.get('subreddit') or 'argentina',
+                  'score':          int(meta_fm.get('score') or 0),
+                  'images': [{
+                      'path':       image_path,
+                      'position':   0,
+                      'is_primary': True,
+                  }],
+                  'tags':           [str(t) for t in (meta_fm.get('tags') or [])],
+                  'source_url':     meta_fm.get('source_url') or '',
+                  'post_url':       meta_fm.get('post_url') or '',
+                  'translations':   translations,
+              }
+
+              body = json.dumps(payload).encode('utf-8')
+              req = urllib.request.Request(
+                  f"{api_url}/admin/reindex",
+                  data=body,
+                  headers={'Content-Type': 'application/json', 'X-Api-Key': api_key},
+                  method='POST'
+              )
+              try:
                   with urllib.request.urlopen(req, timeout=10) as resp:
                       if resp.status != 200:
-                          print(f"ERROR: unexpected status {resp.status} for {mdx_path}", file=sys.stderr)
+                          print(f"ERROR: unexpected status {resp.status} for {dir_part}/{stem}", file=sys.stderr)
                           sys.exit(1)
                       submitted += 1
-                      print(f"OK [{resp.status}] {category}/{slug} — async indexing accepted")
-
+                      locale_summary = ', '.join(t['locale'] for t in translations)
+                      print(f"OK [{resp.status}] {category}/{slug_val} ({len(translations)} locale(s): {locale_summary})")
               except urllib.error.HTTPError as e:
-                  print(f"ERROR: HTTP {e.code} for {mdx_path}: {e.read().decode()}", file=sys.stderr)
+                  print(f"ERROR: HTTP {e.code} for {dir_part}/{stem}: {e.read().decode()}", file=sys.stderr)
                   sys.exit(1)
               except Exception as e:
-                  print(f"ERROR: {mdx_path}: {e}", file=sys.stderr)
+                  print(f"ERROR: {dir_part}/{stem}: {e}", file=sys.stderr)
                   sys.exit(1)
 
           print(f"\nSubmitted {submitted} meme(s) for async indexing")
