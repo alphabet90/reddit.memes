@@ -160,6 +160,7 @@ def main() -> int:
         classify_workers=args.classify_workers,
         classifier=classifier,
         create_branch=not args.no_branch,
+        locale=args.locale,
     )
     return 0
 

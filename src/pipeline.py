@@ -78,6 +78,7 @@ def run(
     classify_workers: int | None = None,
     classifier: BaseClassifier | None = None,
     create_branch: bool = True,
+    locale: str = "en",
 ) -> None:
     tracker = _build_tracker()
     _index_existing_memes(tracker, repo_path, force=rebuild_content_index)
@@ -207,7 +208,7 @@ def run(
                 if result.url in url_to_path
             ]
 
-            saved = save_and_commit_batch(items_with_paths, repo_path, batch_num, subreddit, url_to_meta=url_to_meta)
+            saved = save_and_commit_batch(items_with_paths, repo_path, batch_num, subreddit, url_to_meta=url_to_meta, locale=locale)
 
             for result, _ in items_with_paths:
                 tracker.mark_processed(result.url)
