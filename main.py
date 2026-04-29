@@ -27,6 +27,16 @@ def main() -> int:
         choices=["claude", "codex"],
         help=f"Vision classifier backend (default: {config.CLASSIFIER})",
     )
+    parser.add_argument(
+        "--locale",
+        default="en",
+        metavar="LOCALE",
+        help=(
+            "Prompt locale in ISO 639 / BCP 47 format (e.g. en, es-AR, es_AR). "
+            "Loads prompts/prompt.{locale}.txt; falls back to the language root then en. "
+            "(default: en)"
+        ),
+    )
     parser.add_argument("--repo-path", type=Path, default=None, help="Path to git repo (default: current dir)")
     parser.add_argument("--dry-run", action="store_true", help="Classify without saving or committing")
     parser.add_argument(
@@ -113,7 +123,7 @@ def main() -> int:
     from src.classifiers import ClaudeClassifier, CodexClassifier
 
     _backends = {"claude": ClaudeClassifier, "codex": CodexClassifier}
-    classifier = _backends[args.classifier]()
+    classifier = _backends[args.classifier](locale=args.locale)
 
     if args.reset_bloom:
         removed = []

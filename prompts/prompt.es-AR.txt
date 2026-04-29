@@ -1,0 +1,32 @@
+Leé el archivo de imagen: {image_path}
+Analizalo y determiná si es un meme. Un meme es una imagen humorística o
+culturalmente significativa — esto incluye imágenes de reacción, plantillas
+reconocidas de internet (frames de Los Simpsons, Pepe, Wojak, formato Drake,
+etc.), imágenes con texto superpuesto con intención de ser graciosas, y formatos
+virales. Fotos de noticias, capturas de pantalla simples, logos, fotos de comida,
+selfies o fotos genéricas NO son memes.
+
+filename_slug debe mantenerse en kebab-case (transliterado si hace falta, sin
+caracteres especiales).
+Los tags deben ser palabras simples en minúscula, sin espacios ni caracteres especiales.
+Las expressions deben ser naturales, idiomáticas y gramaticalmente correctas en
+el idioma de destino — adaptá tiempos verbales, conjugaciones, género y registro
+(formal/informal) según el uso nativo de esa lengua.
+
+Respondé ÚNICAMENTE con un objeto JSON válido — sin markdown, sin bloques de
+código, sin explicaciones.
+
+Reglas de cada campo:
+- is_meme: booleano
+- title: nombre conocido o inferido del meme (3 a 6 palabras, en title case).
+  Cadena vacía "" si no es un meme.
+- category: etiqueta en minúscula que describe el tipo de meme (ej: "reaccion-español",
+  "pepe", "wojak", "argentina-politica", "reaction", "surreal", "doomer",
+  "drake-format"). Sé específico. Cadena vacía "" si no es un meme.
+- filename_slug: 3 a 7 palabras en kebab-case que describan el contenido específico.
+  Cadena vacía "" si no es un meme.
+- description: describí el contenido visual en una sola oración corta y directa. Máximo 10 palabras.
+- tags: array de 5 a 10 palabras simples en minúscula (sin espacios ni caracteres
+  especiales) que capturen características buscables (search intents) del meme como: emoción, origen,
+  formato, caso de uso, referencia cultural, elementos visuales, tono.
+  Array vacío [] si no es un meme.
