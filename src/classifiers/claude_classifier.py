@@ -7,34 +7,14 @@ from src.classifiers.base import BaseClassifier, ClassificationResult
 
 logger = logging.getLogger(__name__)
 
-_PROMPT = """\
-Read this image file: {image_path}
-
-Analyze it and determine if it is a meme. A meme is a humorous or culturally \
-significant image — this includes reaction images, recognizable internet templates \
-(Simpsons frames, Pepe, Wojak, Drake format, etc.), images with text overlays \
-intended to be funny, and viral image formats. News photos, plain screenshots, \
-logos, food photos, selfies, or generic photos are NOT memes.
-
-Respond with ONLY a valid JSON object — no markdown, no code fences, no explanation:
-{{"is_meme": true, "category": "simpsons", "filename_slug": "homer-walks-into-bar", "description": "Homer Simpson enters a bar looking confused"}}
-
-Field rules:
-- is_meme: boolean
-- category: free-form lowercase label describing the meme type (e.g. "simpsons", \
-"pepe", "wojak", "argentina-politics", "reaction", "surreal", "doomer", "drake-format"). \
-Be specific. Empty string "" if not a meme.
-- filename_slug: 3-7 words in kebab-case describing the specific content \
-(e.g. "homer-walks-into-lesbian-bar", "pepe-crying-at-boca-loss"). \
-Empty string "" if not a meme.
-- description: one sentence. Empty string "" if not a meme.
-"""
-
 
 class ClaudeClassifier(BaseClassifier):
 
+    def __init__(self, locale: str = "en", prompts_dir: Path | None = None) -> None:
+        super().__init__(locale, prompts_dir)
+
     def classify_image(self, image_path: Path, url: str) -> ClassificationResult:
-        prompt = _PROMPT.format(image_path=str(image_path))
+        prompt = self._prompt.format(image_path=str(image_path))
 
         for attempt in range(2):
             try:
@@ -67,9 +47,11 @@ class ClaudeClassifier(BaseClassifier):
                 return ClassificationResult(
                     url=url,
                     is_meme=bool(parsed.get("is_meme", False)),
+                    title=str(parsed.get("title", "")).strip(),
                     category=str(parsed.get("category", "")).strip().lower(),
                     filename_slug=str(parsed.get("filename_slug", "")).strip().lower(),
                     description=str(parsed.get("description", "")).strip(),
+                    tags=[str(t).strip().lower() for t in parsed.get("tags", []) if t],
                 )
 
             except json.JSONDecodeError as e:

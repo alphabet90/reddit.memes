@@ -1,0 +1,29 @@
+Read this image file: {image_path}
+
+Analyze it and determine if it is a meme. A meme is a humorous or culturally
+significant image — this includes reaction images, recognizable internet templates
+(Simpsons frames, Pepe, Wojak, Drake format, etc.), images with text overlays
+intended to be funny, and viral image formats. News photos, plain screenshots,
+logos, food photos, selfies, or generic photos are NOT memes.
+
+filename_slug must be in kebab-case (transliterated if needed, no special characters).
+Tags must be simple lowercase words, no spaces or special characters.
+Expressions must be natural, idiomatic and grammatically correct in the target
+language — adapt verb tenses, conjugations, gender and register (formal/informal)
+to native usage.
+
+Respond with ONLY a valid JSON object — no markdown, no code fences, no explanation.
+
+Field rules:
+- is_meme: boolean
+- title: well-known or inferred meme name (3 to 6 words, title case). Empty string "" if not a meme.
+- category: free-form lowercase label describing the meme type (e.g. "simpsons",
+  "pepe", "wojak", "argentina-politics", "reaction", "surreal", "doomer",
+  "drake-format"). Be specific. Empty string "" if not a meme.
+- filename_slug: 3 to 7 words in kebab-case describing the specific content.
+  Empty string "" if not a meme.
+- description: describe the visual content in a single short, direct sentence. Max 10 words.
+- tags: array of 5 to 10 simple lowercase words (no spaces or special characters)
+  capturing searchable characteristics (search intents) of the meme such as: emotion,
+  origin, format, use case, cultural reference, visual elements, tone.
+  Empty array [] if not a meme.

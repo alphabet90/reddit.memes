@@ -53,6 +53,7 @@ python main.py --subreddit argentina --reset-bloom --dry-run
 |---|---|---|
 | `--batch-size N` | `10` | Number of images per git commit batch |
 | `--classifier {claude,codex}` | `claude` | Vision classifier backend (see [Classifiers](#classifiers)) |
+| `--locale LOCALE` | `en` | Prompt language/locale (see [Locale Prompts](#locale-prompts)) |
 | `--classify-workers N` | `4` | Number of parallel classifier subprocesses |
 | `--min-comment-upvotes N` | `0` | Also scrape images from comments with at least N upvotes |
 | `--dry-run` | off | Classify without saving files or creating git commits |
@@ -132,6 +133,54 @@ python main.py --classifier codex
 ### Adding a custom classifier
 
 Subclass `BaseClassifier` from `src/classifiers/base.py`, implement `classify_image(image_path, url) -> ClassificationResult`, register it in `src/classifiers/__init__.py` and add it to the `_backends` dict in `main.py`.
+
+---
+
+## Locale Prompts
+
+The `--locale` flag selects which prompt file is sent to the classifier. This controls the language of the instructions and the output fields (descriptions, tags, etc.) returned by the model.
+
+### Prompt file resolution
+
+Prompt files live in `prompts/` at the repository root and follow the naming convention `prompt.{locale}.txt`, where the locale uses BCP 47 format with a hyphen separator (e.g. `es-AR`, not `es_AR`).
+
+The loader normalizes the input automatically — `es_AR`, `es-ar`, and `es-AR` all resolve to `prompt.es-AR.txt`.
+
+**Fallback order** (first file found wins):
+
+1. `prompts/prompt.{locale}.txt` (e.g. `prompt.es-AR.txt`)
+2. `prompts/prompt.{language}.txt` (e.g. `prompt.es.txt`)
+3. `prompts/prompt.en.txt`
+
+A warning is logged when a fallback is used.
+
+### Examples
+
+```bash
+# Use Spanish (Argentina) prompt
+python main.py --subreddit argentina --locale es_AR
+
+# Use English prompt explicitly
+python main.py --subreddit dankmemes --locale en
+
+# Codex backend with locale
+python main.py --subreddit argentina --classifier codex --locale es-AR
+```
+
+### Adding a new locale
+
+Create `prompts/prompt.{locale}.txt` following BCP 47 naming. The file must be a plain-text prompt template. Use `{image_path}` as a placeholder where the classifier should insert the path to the image being analyzed.
+
+The prompt should instruct the model to respond with a JSON object containing:
+
+| Field | Type | Description |
+|---|---|---|
+| `is_meme` | boolean | Whether the image is a meme |
+| `title` | string | Well-known or inferred meme name (3–6 words, title case) |
+| `category` | string | Lowercase label for the meme type |
+| `filename_slug` | string | 3–7 kebab-case words describing the content |
+| `description` | string | One short sentence describing the visual content |
+| `tags` | array of strings | 5–10 searchable lowercase keywords |
 
 ---
 

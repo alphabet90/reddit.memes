@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 from src.classifier import ClassificationResult
+from src.classifiers.prompt_loader import _normalize as _normalize_locale
 from src.models import PostMetadata
 
 logger = logging.getLogger(__name__)
@@ -47,19 +48,36 @@ def save_meme(image_path: Path, result: ClassificationResult, repo_path: Path) -
     return dest
 
 
+def _mdx_path(image_dest: Path, locale: str) -> Path:
+    normalized = _normalize_locale(locale)
+    if normalized == "en":
+        return image_dest.with_suffix(".mdx")
+    return image_dest.with_name(f"{image_dest.stem}.{normalized}.mdx")
+
+
 def write_mdx(
     image_dest: Path,
     result: ClassificationResult,
     meta: PostMetadata,
     repo_path: Path,
+    locale: str = "en",
 ) -> Path | None:
-    mdx_path = image_dest.with_suffix(".mdx")
+    mdx_path = _mdx_path(image_dest, locale)
     image_rel = str(image_dest.relative_to(repo_path)).replace("\\", "/")
     created_at = datetime.datetime.utcfromtimestamp(meta.created_utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     post_url = f"https://reddit.com{meta.permalink}"
-    tags = f'"{_yaml_str(meta.subreddit)}", "{_yaml_str(result.category)}"'
     slug = _sanitize_slug(result.filename_slug) if result.filename_slug else "meme"
-    title = meta.title or slug
+    title = result.title or meta.title or slug
+
+    tag_items = [meta.subreddit, result.category] + list(result.tags)
+    seen: set[str] = set()
+    unique_tags: list[str] = []
+    for t in tag_items:
+        t = t.strip()
+        if t and t not in seen:
+            seen.add(t)
+            unique_tags.append(t)
+    tags = ", ".join(f'"{_yaml_str(t)}"' for t in unique_tags)
 
     content = (
         f'---\n'
@@ -150,6 +168,7 @@ def save_and_commit_batch(
     batch_num: int,
     subreddit: str,
     url_to_meta: dict[str, PostMetadata] | None = None,
+    locale: str = "en",
 ) -> list[Path]:
     saved_images: list[Path] = []
     saved_mdx: list[Path] = []
@@ -159,7 +178,7 @@ def save_and_commit_batch(
             saved_images.append(path)
             meta = (url_to_meta or {}).get(result.url)
             if meta is not None:
-                mdx = write_mdx(path, result, meta, repo_path)
+                mdx = write_mdx(path, result, meta, repo_path, locale=locale)
                 if mdx:
                     saved_mdx.append(mdx)
 

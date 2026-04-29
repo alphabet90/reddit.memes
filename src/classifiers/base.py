@@ -1,10 +1,11 @@
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import config
+from src.classifiers.prompt_loader import load_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -13,13 +14,18 @@ logger = logging.getLogger(__name__)
 class ClassificationResult:
     url: str
     is_meme: bool = False
+    title: str = ""
     category: str = ""
     filename_slug: str = ""
     description: str = ""
+    tags: list[str] = field(default_factory=list)
     error: str | None = None
 
 
 class BaseClassifier(ABC):
+
+    def __init__(self, locale: str = "en", prompts_dir: Path | None = None) -> None:
+        self._prompt = load_prompt(locale, prompts_dir)
 
     @abstractmethod
     def classify_image(self, image_path: Path, url: str) -> ClassificationResult:
