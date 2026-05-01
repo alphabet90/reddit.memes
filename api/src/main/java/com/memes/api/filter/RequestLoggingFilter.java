@@ -55,7 +55,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             logIncomingRequest(wrappedRequest, requestId);
             chain.doFilter(wrappedRequest, wrappedResponse);
             long duration = System.currentTimeMillis() - startTime;
-            logRequestBodyIfEnabled(wrappedRequest, requestId);
+            logRequestBody(wrappedRequest, requestId);
             logOutgoingResponse(wrappedResponse, requestId, duration);
         } finally {
             wrappedResponse.copyBodyToResponse();
@@ -80,10 +80,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                 userAgent);
     }
 
-    private void logRequestBodyIfEnabled(ContentCachingRequestWrapper request, String requestId) {
-        if (!loggingProperties.isLogRequestBody()) {
-            return;
-        }
+    private void logRequestBody(ContentCachingRequestWrapper request, String requestId) {
         if (!isTextContentType(request.getContentType())) {
             return;
         }
@@ -108,7 +105,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             log.info("[{}] <-- {} in {}ms (body={}B)", requestId, status, duration, bodySize);
         }
 
-        if (!loggingProperties.isLogResponseBody() || bodySize == 0) {
+        if (bodySize == 0) {
             return;
         }
         if (!isTextContentType(response.getContentType())) {
