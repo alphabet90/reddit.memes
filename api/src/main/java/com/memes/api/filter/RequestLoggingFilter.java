@@ -27,8 +27,6 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
-    private static final String MDC_REQUEST_ID = "requestId";
-
     private final LoggingProperties loggingProperties;
 
     @Override
@@ -43,27 +41,40 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain chain) throws ServletException, IOException {
 
-        String requestId = UUID.randomUUID().toString().substring(0, 8);
-        MDC.put(MDC_REQUEST_ID, requestId);
+        String traceId = extractTraceId(request);
 
         ContentCachingRequestWrapper wrappedRequest =
                 new ContentCachingRequestWrapper(request, loggingProperties.getMaxBodySize());
         ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
 
+        // Populate ECS MDC fields — available on every log line emitted during this request
+        MDC.put("trace.id", traceId);
+        MDC.put("http.request.method", request.getMethod());
+        MDC.put("url.path", request.getRequestURI());
+        Optional.ofNullable(request.getQueryString()).ifPresent(qs -> MDC.put("url.query", qs));
+        MDC.put("client.ip", Optional.ofNullable(request.getHeader("X-Forwarded-For"))
+                .orElseGet(request::getRemoteAddr));
+        MDC.put("user_agent.original", Optional.ofNullable(request.getHeader("User-Agent")).orElse("-"));
+        // Echo trace ID back so callers can correlate logs without access to Kibana
+        wrappedResponse.setHeader("X-Trace-Id", formatUuid(traceId));
+
         long startTime = System.currentTimeMillis();
         try {
-            logIncomingRequest(wrappedRequest, requestId);
+            logIncomingRequest(wrappedRequest, traceId);
             chain.doFilter(wrappedRequest, wrappedResponse);
             long duration = System.currentTimeMillis() - startTime;
-            logRequestBody(wrappedRequest, requestId);
-            logOutgoingResponse(wrappedResponse, requestId, duration);
+            MDC.put("http.response.status_code", String.valueOf(wrappedResponse.getStatus()));
+            MDC.put("http.response.body.bytes", String.valueOf(wrappedResponse.getContentAsByteArray().length));
+            MDC.put("event.duration", String.valueOf(duration * 1_000_000L));
+            logRequestBody(wrappedRequest, traceId);
+            logOutgoingResponse(wrappedResponse, traceId, duration);
         } finally {
             wrappedResponse.copyBodyToResponse();
-            MDC.remove(MDC_REQUEST_ID);
+            MDC.clear();
         }
     }
 
-    private void logIncomingRequest(ContentCachingRequestWrapper request, String requestId) {
+    private void logIncomingRequest(ContentCachingRequestWrapper request, String traceId) {
         String queryString = Optional.ofNullable(request.getQueryString())
                 .map(q -> "?" + q)
                 .orElse("");
@@ -72,7 +83,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         String userAgent = Optional.ofNullable(request.getHeader("User-Agent")).orElse("-");
 
         log.info("[{}] --> {} {}{} from={} ua={}",
-                requestId,
+                traceId,
                 request.getMethod(),
                 request.getRequestURI(),
                 queryString,
@@ -80,7 +91,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                 userAgent);
     }
 
-    private void logRequestBody(ContentCachingRequestWrapper request, String requestId) {
+    private void logRequestBody(ContentCachingRequestWrapper request, String traceId) {
         if (!isTextContentType(request.getContentType())) {
             return;
         }
@@ -90,19 +101,19 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         }
         String bodyText = maskSensitiveValues(
                 truncate(new String(body, StandardCharsets.UTF_8), loggingProperties.getMaxBodySize()));
-        log.info("[{}] request body: {}", requestId, bodyText);
+        log.info("[{}] request body: {}", traceId, bodyText);
     }
 
-    private void logOutgoingResponse(ContentCachingResponseWrapper response, String requestId, long duration) {
+    private void logOutgoingResponse(ContentCachingResponseWrapper response, String traceId, long duration) {
         int status = response.getStatus();
         int bodySize = response.getContentAsByteArray().length;
 
         if (status >= 500) {
-            log.error("[{}] <-- {} in {}ms (body={}B)", requestId, status, duration, bodySize);
+            log.error("[{}] <-- {} in {}ms (body={}B)", traceId, status, duration, bodySize);
         } else if (status >= 400) {
-            log.warn("[{}] <-- {} in {}ms (body={}B)", requestId, status, duration, bodySize);
+            log.warn("[{}] <-- {} in {}ms (body={}B)", traceId, status, duration, bodySize);
         } else {
-            log.info("[{}] <-- {} in {}ms (body={}B)", requestId, status, duration, bodySize);
+            log.info("[{}] <-- {} in {}ms (body={}B)", traceId, status, duration, bodySize);
         }
 
         if (bodySize == 0) {
@@ -114,7 +125,35 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         String bodyText = maskSensitiveValues(
                 truncate(new String(response.getContentAsByteArray(), StandardCharsets.UTF_8),
                         loggingProperties.getMaxBodySize()));
-        log.info("[{}] response body: {}", requestId, bodyText);
+        log.info("[{}] response body: {}", traceId, bodyText);
+    }
+
+    // Extracts trace ID from W3C traceparent header, or generates a fresh UUID v4 (32-char hex).
+    private String extractTraceId(HttpServletRequest request) {
+        return Optional.ofNullable(request.getHeader("traceparent"))
+                .flatMap(this::parseTraceparent)
+                .orElseGet(() -> UUID.randomUUID().toString().replace("-", ""));
+    }
+
+    // Lenient parse: takes segment [1] from "version-traceId-parentId-flags".
+    private Optional<String> parseTraceparent(String header) {
+        String[] parts = header.split("-", -1);
+        if (parts.length < 4) {
+            return Optional.empty();
+        }
+        String traceId = parts[1];
+        if (traceId.length() != 32 || !traceId.matches("[0-9a-f]+")) {
+            return Optional.empty();
+        }
+        return Optional.of(traceId);
+    }
+
+    private String formatUuid(String hex32) {
+        return hex32.substring(0, 8) + "-"
+                + hex32.substring(8, 12) + "-"
+                + hex32.substring(12, 16) + "-"
+                + hex32.substring(16, 20) + "-"
+                + hex32.substring(20);
     }
 
     private boolean isTextContentType(String contentType) {
