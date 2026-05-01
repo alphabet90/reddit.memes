@@ -113,6 +113,13 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- Structured JSON logging for Elastic/Kibana -->
+    <dependency>
+      <groupId>net.logstash.logback</groupId>
+      <artifactId>logstash-logback-encoder</artifactId>
+      <version>8.0</version>
+    </dependency>
+
     <!-- Lombok -->
     <dependency>
       <groupId>org.projectlombok</groupId>

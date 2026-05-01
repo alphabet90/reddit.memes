@@ -19,6 +19,7 @@ public class AsyncConfig {
         exec.setQueueCapacity(100);
         exec.setThreadNamePrefix("reindex-");
         exec.setDaemon(true);
+        exec.setTaskDecorator(new MdcTaskDecorator());
         exec.initialize();
         return exec;
     }

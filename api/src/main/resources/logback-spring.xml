@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <!-- ── Dev / default: human-readable console ─────────────────────────── -->
+  <springProfile name="!prod">
+    <appender name="CONSOLE_DEV" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <pattern>%d{HH:mm:ss.SSS} %-5level [%X{trace.id}] %logger{36} - %msg%n</pattern>
+      </encoder>
+    </appender>
+
+    <logger name="com.memes.api" level="INFO"/>
+    <root level="INFO">
+      <appender-ref ref="CONSOLE_DEV"/>
+    </root>
+  </springProfile>
+
+  <!-- ── Prod: ECS-compatible JSON for Kibana ──────────────────────────── -->
+  <!-- Activate with: SPRING_PROFILES_ACTIVE=prod                           -->
+  <springProfile name="prod">
+    <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+        <!-- Rename default fields to ECS equivalents -->
+        <fieldNames>
+          <timestamp>@timestamp</timestamp>
+          <version>[ignore]</version>
+          <levelValue>[ignore]</levelValue>
+          <level>log.level</level>
+          <logger>log.logger</logger>
+          <thread>process.thread.name</thread>
+          <stackTrace>error.stack_trace</stackTrace>
+        </fieldNames>
+        <!-- Static ECS service metadata on every log line -->
+        <customFields>{"service.name":"memes-api","ecs.version":"8.11.0"}</customFields>
+        <!-- MDC fields (trace.id, http.*, url.*, client.ip, etc.) are
+             emitted as top-level JSON keys automatically by the encoder -->
+        <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+          <maxDepthPerThrowable>30</maxDepthPerThrowable>
+          <maxLength>4096</maxLength>
+          <rootCauseFirst>true</rootCauseFirst>
+          <inlineHash>true</inlineHash>
+        </throwableConverter>
+      </encoder>
+    </appender>
+
+    <logger name="com.memes.api" level="INFO"/>
+    <root level="INFO">
+      <appender-ref ref="CONSOLE_JSON"/>
+    </root>
+  </springProfile>
+
+</configuration>
