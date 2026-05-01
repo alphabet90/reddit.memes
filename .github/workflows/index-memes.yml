@@ -95,7 +95,8 @@ jobs:
                   return []
 
           def parse_frontmatter(path):
-              content = open(path, encoding='utf-8').read()
+              # utf-8-sig strips the BOM if present so the ^--- regex always matches.
+              content = open(path, encoding='utf-8-sig').read()
               match = re.match(r'^---\r?\n(.*?)\r?\n---', content, re.DOTALL)
               if not match:
                   return None
@@ -149,31 +150,40 @@ jobs:
                   print(f"WARNING: Missing slug/category in {meta_file}", file=sys.stderr)
                   continue
 
-              # Collect one translation per language code across all locale files.
+              # Each MDX file is itself a translation: locale comes from the
+              # filename (slug.es-AR.mdx -> 'es', slug.mdx -> 'en' by default)
+              # and title/description come from the flat frontmatter fields.
               translations = []
               seen_locales = set()
 
               for fpath in all_files:
+                  raw_locale = file_locale(os.path.basename(fpath))
+                  lc = lang_code(raw_locale)
+
+                  if lc in seen_locales:
+                      continue
+
                   try:
                       fm = parse_frontmatter(fpath)
                       if not fm or not isinstance(fm, dict):
+                          print(f"WARNING: {fpath}: no frontmatter, skipping locale '{lc}'", file=sys.stderr)
                           continue
 
-                      raw_locale = file_locale(os.path.basename(fpath))
-                      lc = lang_code(raw_locale)
+                      # str() guard: PyYAML may parse some values as int/bool
+                      # (e.g. title: 2023 -> int, title: false -> bool False).
+                      title       = str(fm.get('title') or '').strip()
+                      description = str(fm.get('description') or '').strip()
 
-                      if lc in seen_locales:
+                      if not title:
+                          print(f"WARNING: {fpath}: empty title, skipping locale '{lc}'", file=sys.stderr)
                           continue
 
-                      title       = fm.get('title') or ''
-                      description = fm.get('description') or ''
-                      if title:
-                          seen_locales.add(lc)
-                          translations.append({
-                              'locale':      lc,
-                              'title':       title,
-                              'description': description,
-                          })
+                      seen_locales.add(lc)
+                      translations.append({
+                          'locale':      lc,
+                          'title':       title,
+                          'description': description,
+                      })
                   except Exception as e:
                       print(f"WARNING: Could not parse {fpath}: {e}", file=sys.stderr)
                       continue
