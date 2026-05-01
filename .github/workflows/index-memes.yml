@@ -156,27 +156,27 @@ jobs:
               for fpath in all_files:
                   try:
                       fm = parse_frontmatter(fpath)
+                      if not fm or not isinstance(fm, dict):
+                          continue
+
+                      raw_locale = file_locale(os.path.basename(fpath))
+                      lc = lang_code(raw_locale)
+
+                      if lc in seen_locales:
+                          continue
+
+                      title       = fm.get('title') or ''
+                      description = fm.get('description') or ''
+                      if title:
+                          seen_locales.add(lc)
+                          translations.append({
+                              'locale':      lc,
+                              'title':       title,
+                              'description': description,
+                          })
                   except Exception as e:
                       print(f"WARNING: Could not parse {fpath}: {e}", file=sys.stderr)
                       continue
-                  if not fm:
-                      continue
-
-                  raw_locale = file_locale(os.path.basename(fpath))
-                  lc = lang_code(raw_locale)
-
-                  if lc in seen_locales:
-                      continue
-                  seen_locales.add(lc)
-
-                  title       = fm.get('title') or ''
-                  description = fm.get('description') or ''
-                  if title:
-                      translations.append({
-                          'locale':      lc,
-                          'title':       title,
-                          'description': description,
-                      })
 
               if not translations:
                   print(f"WARNING: No translations found for {dir_part}/{stem}", file=sys.stderr)
@@ -226,7 +226,9 @@ jobs:
                       locale_summary = ', '.join(t['locale'] for t in translations)
                       print(f"OK [{resp.status}] {category}/{slug_val} ({len(translations)} locale(s): {locale_summary})")
               except urllib.error.HTTPError as e:
-                  print(f"ERROR: HTTP {e.code} for {dir_part}/{stem}: {e.read().decode()}", file=sys.stderr)
+                  resp_body = e.read().decode()
+                  print(f"ERROR: HTTP {e.code} for {dir_part}/{stem}: {resp_body}", file=sys.stderr)
+                  print(f"  sent payload: {json.dumps(payload, ensure_ascii=False)}", file=sys.stderr)
                   sys.exit(1)
               except Exception as e:
                   print(f"ERROR: {dir_part}/{stem}: {e}", file=sys.stderr)

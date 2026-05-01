@@ -12,7 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 def _yaml_str(s: str) -> str:
-    return s.replace("\\", "\\\\").replace('"', '\\"')
+    return (s.replace("\\", "\\\\")
+             .replace('"', '\\"')
+             .replace('\n', '\\n')
+             .replace('\r', '\\r'))
 
 
 def _sanitize_slug(slug: str) -> str:
