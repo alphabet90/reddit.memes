@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
+  <!-- ── Noise suppression (both profiles) ─────────────────────────────── -->
+  <!-- Tomcat logs "Servlet.service() threw exception" with an empty trace  -->
+  <!-- ID after our filter's MDC.clear() already ran. RequestLoggingFilter  -->
+  <!-- logs the same event at ERROR with full trace context, so this is     -->
+  <!-- purely duplicate noise.                                               -->
+  <logger name="org.apache.catalina.core.StandardWrapperValve" level="WARN"/>
+  <!-- DispatcherServlet re-logs the propagated exception at ERROR level.   -->
+  <logger name="org.springframework.web.servlet.DispatcherServlet" level="WARN"/>
+
   <!-- ── Dev / default: human-readable console ─────────────────────────── -->
   <springProfile name="!prod">
     <appender name="CONSOLE_DEV" class="ch.qos.logback.core.ConsoleAppender">
