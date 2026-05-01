@@ -42,6 +42,8 @@ services:
       REDIS_PORT: 6379
       ADMIN_API_KEY: ${ADMIN_API_KEY:-testing}
       MEMES_ROOT: /memes
+      APP_LOGGING_LOG_REQUEST_BODY: ${APP_LOGGING_LOG_REQUEST_BODY:-false}
+      APP_LOGGING_LOG_RESPONSE_BODY: ${APP_LOGGING_LOG_RESPONSE_BODY:-false}
     volumes:
       - ./memes:/memes:ro
     depends_on:

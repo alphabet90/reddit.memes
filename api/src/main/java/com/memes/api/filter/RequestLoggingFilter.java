@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -83,12 +84,16 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         if (!loggingProperties.isLogRequestBody()) {
             return;
         }
+        if (!isTextContentType(request.getContentType())) {
+            return;
+        }
         byte[] body = request.getContentAsByteArray();
         if (body.length == 0) {
             return;
         }
-        String bodyText = truncate(new String(body, StandardCharsets.UTF_8), loggingProperties.getMaxBodySize());
-        log.debug("[{}] request body: {}", requestId, bodyText);
+        String bodyText = maskSensitiveValues(
+                truncate(new String(body, StandardCharsets.UTF_8), loggingProperties.getMaxBodySize()));
+        log.info("[{}] request body: {}", requestId, bodyText);
     }
 
     private void logOutgoingResponse(ContentCachingResponseWrapper response, String requestId, long duration) {
@@ -106,9 +111,32 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         if (!loggingProperties.isLogResponseBody() || bodySize == 0) {
             return;
         }
-        String bodyText = truncate(new String(response.getContentAsByteArray(), StandardCharsets.UTF_8),
-                loggingProperties.getMaxBodySize());
-        log.debug("[{}] response body: {}", requestId, bodyText);
+        if (!isTextContentType(response.getContentType())) {
+            return;
+        }
+        String bodyText = maskSensitiveValues(
+                truncate(new String(response.getContentAsByteArray(), StandardCharsets.UTF_8),
+                        loggingProperties.getMaxBodySize()));
+        log.info("[{}] response body: {}", requestId, bodyText);
+    }
+
+    private boolean isTextContentType(String contentType) {
+        return Optional.ofNullable(contentType)
+                .map(ct -> ct.startsWith("text/")
+                        || ct.contains("application/json")
+                        || ct.contains("application/xml")
+                        || ct.contains("application/x-www-form-urlencoded"))
+                .orElse(false);
+    }
+
+    private String maskSensitiveValues(String body) {
+        String result = body;
+        for (String header : loggingProperties.getMaskHeaders()) {
+            result = result.replaceAll(
+                    "(?i)(\"?" + Pattern.quote(header) + "\"?\\s*[:=]\\s*\")[^\"]+\"",
+                    "$1[MASKED]\"");
+        }
+        return result;
     }
 
     private String truncate(String value, int maxLength) {
