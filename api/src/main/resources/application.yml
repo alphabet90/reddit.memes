@@ -69,9 +69,9 @@ app:
     # APP_LOGGING_MAX_BODY_SIZE
     max-body-size: 1000
     # APP_LOGGING_LOG_REQUEST_BODY
-    log-request-body: false
+    log-request-body: true
     # APP_LOGGING_LOG_RESPONSE_BODY
-    log-response-body: false
+    log-response-body: true
     # APP_LOGGING_MASK_HEADERS (comma-separated)
     mask-headers:
       - X-Api-Key
