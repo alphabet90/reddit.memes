@@ -237,7 +237,7 @@
 }
 
 @media (max-width: 640px) {
-  .hero {
+  .visual {
     display: none;
   }
 }
