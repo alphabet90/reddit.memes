@@ -235,3 +235,9 @@
     margin-top: var(--space-6);
   }
 }
+
+@media (max-width: 640px) {
+  .hero {
+    display: none;
+  }
+}
