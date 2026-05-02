@@ -8,8 +8,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SearchIcon } from "@/components/icons";
 
-import { searchMemes } from "@/lib/api";
-import { toMeme } from "@/lib/data/memes";
+import { searchListing } from "@/lib/data/memes";
 import { breadcrumbJsonLd } from "@/lib/seo";
 import { site } from "@/lib/site";
 
@@ -60,8 +59,8 @@ export default async function SearchPage({ searchParams }: Props) {
   const q = (sp.q ?? "").trim();
   const page = parsePage(sp.page);
 
-  const result = await searchMemes({ q, page, limit: PAGE_SIZE });
-  const memes = result.data.map(toMeme);
+  const result = await searchListing({ q, page, limit: PAGE_SIZE });
+  const memes = result.data;
 
   const breadcrumbs = [
     { name: "Inicio", href: "/" },
@@ -87,9 +86,9 @@ export default async function SearchPage({ searchParams }: Props) {
               <h1 className={styles.title}>
                 {q ? `Resultados para "${q}"` : "Buscá tu meme"}
               </h1>
-              {q && result.total > 0 ? (
+              {q && result.pageInfo.total > 0 ? (
                 <p className={styles.sub}>
-                  {result.total.toLocaleString("es-AR")} resultados
+                  {result.pageInfo.total.toLocaleString("es-AR")} resultados
                 </p>
               ) : null}
 
@@ -141,8 +140,8 @@ export default async function SearchPage({ searchParams }: Props) {
                   priorityCount={5}
                 />
                 <Pagination
-                  page={result.page}
-                  totalPages={result.total_pages}
+                  page={result.pageInfo.page}
+                  totalPages={result.pageInfo.totalPages}
                   buildHref={buildPageHref}
                 />
               </>

@@ -1,5 +1,5 @@
 /**
- * Data layer for memes. Adapts the API contract (lib/api.ts) into
+ * Data layer for memes. Adapts the API v2 contract (lib/api.ts) into
  * the UI's `Meme` shape (lib/types.ts). All functions are server
  * helpers and never run in the browser bundle.
  */
@@ -10,8 +10,13 @@ import {
   fetchMeme,
   fetchMemes,
   fetchMemesByCategory,
+  searchMemes,
   type ApiMeme,
+  type ApiMemeImage,
+  type ApiMemeTranslation,
   type ApiMemePage,
+  type ApiSearchResult,
+  type LocaleCode,
   type SortKey,
 } from "@/lib/api";
 
@@ -37,41 +42,82 @@ const placeholderTiles: Array<{ glyph: string; gradient: string }> = [
   { glyph: "🐩", gradient: "linear-gradient(135deg,#1a0a1a,#2a1030)" },
 ];
 
-function inferFormat(imagePath: string | undefined): Meme["format"] {
+function inferFormat(imagePath: string | undefined | null): Meme["format"] {
   if (!imagePath) return "jpg";
   const ext = imagePath.toLowerCase().split(".").pop();
   if (ext === "png" || ext === "gif" || ext === "webp") return ext;
   return "jpg";
 }
 
-/** Adapt a single API record into the UI shape. */
+function getTranslation(
+  translations: ApiMemeTranslation[],
+  preferLocale: LocaleCode = "es",
+): ApiMemeTranslation | undefined {
+  return translations.find((t) => t.locale === preferLocale) ?? translations[0];
+}
+
+function getPrimaryImage(images: ApiMemeImage[]): ApiMemeImage | undefined {
+  return images.find((i) => i.is_primary) ?? images[0];
+}
+
+function makePlaceholder(id: string) {
+  return placeholderTiles[hash(id) % placeholderTiles.length];
+}
+
+/** Adapt a single V2 API record into the UI shape. */
 export function toMeme(api: ApiMeme): Meme {
   const id = `${api.category}/${api.slug}`;
-  const tile = placeholderTiles[hash(id) % placeholderTiles.length];
+  const tile = makePlaceholder(id);
+  const translation = getTranslation(api.translations, "es");
+  const primaryImage = getPrimaryImage(api.images);
   const createdAt = api.created_at ?? new Date(0).toISOString();
   const isNew =
-    api.created_at !== undefined &&
+    api.created_at != null &&
     Date.now() - new Date(api.created_at).getTime() < NEW_WINDOW_MS;
 
   return {
     id,
     slug: api.slug,
     category: api.category,
-    title: api.title,
-    description: api.description,
-    author: api.author,
-    subreddit: api.subreddit,
+    title: translation?.title ?? api.slug,
+    description: translation?.description ?? undefined,
+    author: api.author ?? undefined,
+    subreddit: api.subreddit ?? undefined,
     score: api.score ?? 0,
     tags: api.tags ?? [],
-    imageUrl: cdnUrl(api.image_path) ?? "",
+    imageUrl: cdnUrl(primaryImage?.path) ?? "",
     href: `/memes/${api.category}/${api.slug}`,
-    format: inferFormat(api.image_path),
+    format: inferFormat(primaryImage?.path),
     createdAt,
-    postUrl: api.post_url,
-    sourceUrl: api.source_url,
+    postUrl: api.post_url ?? undefined,
+    sourceUrl: api.source_url ?? undefined,
     placeholder: tile.glyph,
     placeholderGradient: tile.gradient,
     isNew,
+  };
+}
+
+/** Adapt a V2 SearchResult (flat shape) into the UI Meme shape. */
+export function toMemeFromSearchResult(api: ApiSearchResult): Meme {
+  const id = `${api.category}/${api.slug}`;
+  const tile = makePlaceholder(id);
+
+  return {
+    id,
+    slug: api.slug,
+    category: api.category,
+    title: api.title,
+    description: api.description ?? undefined,
+    author: api.author ?? undefined,
+    subreddit: undefined,
+    score: api.score,
+    tags: api.tags,
+    imageUrl: cdnUrl(api.image_path) ?? "",
+    href: `/memes/${api.category}/${api.slug}`,
+    format: inferFormat(api.image_path),
+    createdAt: new Date(0).toISOString(),
+    placeholder: tile.glyph,
+    placeholderGradient: tile.gradient,
   };
 }
 
@@ -124,4 +170,30 @@ export async function getCategoryListing(
 export async function getMeme(category: string, slug: string): Promise<Meme | null> {
   const api = await fetchMeme(category, slug);
   return api ? toMeme(api) : null;
+}
+
+/**
+ * Search memes and return a MemeListing-compatible shape.
+ * V2 /search returns a flat array with no total count — `totalPages` is
+ * estimated: if we got a full page of results there is likely a next page.
+ */
+export async function searchListing(args: {
+  q: string;
+  page?: number;
+  limit?: number;
+}): Promise<MemeListing> {
+  const limit = args.limit ?? 20;
+  const page = args.page ?? 0;
+  const results = await searchMemes({ ...args, limit, page });
+  const hasMore = results.length === limit;
+
+  return {
+    data: results.map(toMemeFromSearchResult),
+    pageInfo: {
+      page,
+      limit,
+      total: hasMore ? (page + 2) * limit : page * limit + results.length,
+      totalPages: hasMore ? page + 2 : page + 1,
+    },
+  };
 }
