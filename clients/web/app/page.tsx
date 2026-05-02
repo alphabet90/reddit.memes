@@ -1,21 +1,15 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 
 import { Nav } from "@/components/nav/Nav";
 import { Hero } from "@/components/hero/Hero";
-import { MemeGrid } from "@/components/meme/MemeGrid";
 import { MasonryGrid } from "@/components/meme/MasonryGrid";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { Footer } from "@/components/Footer";
 
 import { getCategories } from "@/lib/data/categories";
-import {
-  getTopMemes,
-  getPopularMemes,
-} from "@/lib/data/memes";
+import { getPopularMemes } from "@/lib/data/memes";
 import { getTrending } from "@/lib/data/trending";
-import { memeItemListJsonLd } from "@/lib/seo";
 import { site } from "@/lib/site";
 
 import styles from "./page.module.css";
@@ -41,14 +35,11 @@ export default async function HomePage() {
   // Parallel-fetch everything the home needs. Each call is guarded
   // so a transient API failure never breaks the build or the shell —
   // ISR will refill the section on the next request.
-  const [topMemes, popularMemes, categories, trending] = await Promise.all([
-    getTopMemes(5).catch(() => []),
-    getPopularMemes(12).catch(() => []),
+  const [popularMemes, categories, trending] = await Promise.all([
+    getPopularMemes(25).catch(() => []),
     getCategories().catch(() => []),
     getTrending().catch(() => []),
   ]);
-
-  const itemListLd = memeItemListJsonLd(topMemes);
 
   return (
     <>
@@ -61,17 +52,6 @@ export default async function HomePage() {
           <div className="container">
             <div className={styles.layout}>
               <div className={styles.primary}>
-                <section aria-labelledby="top-title">
-                  <SectionTitle id="top-title" icon={<span>🔥</span>}>
-                    Top memes del día
-                  </SectionTitle>
-                  <MemeGrid
-                    memes={topMemes}
-                    ranked
-                    ariaLabel="Top memes del día"
-                  />
-                </section>
-
                 <section aria-labelledby="populares-title">
                   <SectionTitle id="populares-title" icon={<span>⭐</span>}>
                     Memes populares
@@ -93,13 +73,6 @@ export default async function HomePage() {
 
         <Footer />
       </div>
-
-      <Script
-        id="ld-home-itemlist"
-        type="application/ld+json"
-        strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }}
-      />
     </>
   );
 }
