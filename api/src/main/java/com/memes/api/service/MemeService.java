@@ -8,6 +8,7 @@ import com.memes.api.generated.model.Meme;
 import com.memes.api.generated.model.MemeImage;
 import com.memes.api.generated.model.MemePage;
 import com.memes.api.generated.model.MemeTranslation;
+import com.memes.api.generated.model.SearchResult;
 import com.memes.api.generated.model.Stats;
 import com.memes.api.repository.CategoryRow;
 import com.memes.api.repository.CategoryTranslationRow;
@@ -73,21 +74,43 @@ public class MemeService {
 
     @Cacheable(value = RedisConfig.CACHE_SEARCH,
                key = "#query + '-' + #page + '-' + #limit + '-' + #locale")
-    public MemePage search(String query, int page, int limit, String locale) {
+    public List<SearchResult> search(String query, int page, int limit, String locale) {
         int offset = page * limit;
         List<SearchHit> hits = memeRepository.search(query, locale, limit, offset);
-        long total = hits.isEmpty() ? 0L : hits.get(0).totalCount();
-        List<Meme> data = hits.stream().map(h -> toMeme(h.meme())).toList();
-        MemePage mp = new MemePage();
-        mp.setData(data);
-        mp.setPage(page);
-        mp.setLimit(limit);
-        mp.setTotal((int) total);
-        mp.setTotalPages(limit > 0 ? (int) Math.ceil((double) total / limit) : 0);
-        return mp;
+        return hits.stream().map(h -> toSearchResult(h.meme(), locale)).toList();
     }
 
     // ===== mapping ============================================================
+
+    private static SearchResult toSearchResult(MemeRow row, String locale) {
+        SearchResult result = new SearchResult();
+        result.setSlug(row.slug());
+        result.setCategory(row.categorySlug());
+        Optional.ofNullable(row.authorUsername()).ifPresent(result::setAuthor);
+        result.setScore(row.score());
+        result.setTags(row.tagSlugs());
+
+        row.translations().stream()
+            .filter(t -> locale.equals(t.locale()))
+            .findFirst()
+            .or(() -> row.translations().stream()
+                .filter(t -> row.defaultLocale().equals(t.locale()))
+                .findFirst())
+            .or(() -> row.translations().stream().findFirst())
+            .ifPresent(t -> {
+                result.setTitle(t.title());
+                Optional.ofNullable(t.description()).ifPresent(result::setDescription);
+            });
+
+        row.images().stream()
+            .filter(MemeImageRow::isPrimary)
+            .findFirst()
+            .or(() -> row.images().stream().findFirst())
+            .map(MemeImageRow::path)
+            .ifPresent(result::setImagePath);
+
+        return result;
+    }
 
     private static MemePage toMemePage(List<MemeRow> rows, int page, int limit, int total) {
         MemePage mp = new MemePage();

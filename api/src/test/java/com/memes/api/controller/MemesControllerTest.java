@@ -9,6 +9,7 @@ import com.memes.api.generated.model.Meme;
 import com.memes.api.generated.model.MemeImage;
 import com.memes.api.generated.model.MemePage;
 import com.memes.api.generated.model.MemeTranslation;
+import com.memes.api.generated.model.SearchResult;
 import com.memes.api.generated.model.Stats;
 import com.memes.api.service.IndexerService;
 import com.memes.api.service.MemeService;
@@ -123,15 +124,42 @@ class MemesControllerTest {
     }
 
     @Test
-    void searchMemes_returns200() throws Exception {
-        MemePage page = new MemePage();
-        page.setData(List.of());
-        page.setTotal(0);
-        page.setTotalPages(0);
-        when(memeService.search(anyString(), anyInt(), anyInt(), anyString())).thenReturn(page);
+    void searchMemes_returns200_withLocaleResolvedFields() throws Exception {
+        SearchResult sr = new SearchResult();
+        sr.setSlug("afip-peeking-over-wall-crying");
+        sr.setCategory("argentina-afip");
+        sr.setAuthor("Mati4s_rp");
+        sr.setScore(3035);
+        sr.setTitle("AFIP Tax Man Cries While Peeking Over Wall");
+        sr.setDescription("A figure wearing an AFIP cap peers over a brick wall with tears");
+        sr.setImagePath("memes/argentina-afip/afip-peeking-over-wall-crying.jpg");
+        sr.setTags(List.of("argentina", "argentina-afip"));
+        when(memeService.search(anyString(), anyInt(), anyInt(), anyString())).thenReturn(List.of(sr));
+
+        mockMvc.perform(get("/search?q=afip"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].slug").value("afip-peeking-over-wall-crying"))
+            .andExpect(jsonPath("$[0].category").value("argentina-afip"))
+            .andExpect(jsonPath("$[0].author").value("Mati4s_rp"))
+            .andExpect(jsonPath("$[0].score").value(3035))
+            .andExpect(jsonPath("$[0].title").value("AFIP Tax Man Cries While Peeking Over Wall"))
+            .andExpect(jsonPath("$[0].image_path").value("memes/argentina-afip/afip-peeking-over-wall-crying.jpg"))
+            .andExpect(jsonPath("$[0].tags[0]").value("argentina"))
+            .andExpect(jsonPath("$[0].tags[1]").value("argentina-afip"));
+    }
+
+    @Test
+    void searchMemes_defaultsToEnLocale() throws Exception {
+        when(memeService.search(anyString(), anyInt(), anyInt(), anyString())).thenReturn(List.of());
 
         mockMvc.perform(get("/search?q=jubilado"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.total").value(0));
+            .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(memeService).search(
+            org.mockito.ArgumentMatchers.eq("jubilado"),
+            org.mockito.ArgumentMatchers.anyInt(),
+            org.mockito.ArgumentMatchers.anyInt(),
+            org.mockito.ArgumentMatchers.eq("en")
+        );
     }
 }

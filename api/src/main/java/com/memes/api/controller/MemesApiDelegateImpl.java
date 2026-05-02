@@ -5,6 +5,7 @@ import com.memes.api.generated.model.CategorySummary;
 import com.memes.api.generated.model.LocaleCode;
 import com.memes.api.generated.model.Meme;
 import com.memes.api.generated.model.MemePage;
+import com.memes.api.generated.model.SearchResult;
 import com.memes.api.generated.model.Stats;
 import com.memes.api.service.MemeService;
 import lombok.RequiredArgsConstructor;
@@ -69,7 +70,7 @@ public class MemesApiDelegateImpl implements MemesApiDelegate {
     }
 
     @Override
-    public ResponseEntity<MemePage> searchMemes(String q, Integer page, Integer limit, LocaleCode locale) {
+    public ResponseEntity<List<SearchResult>> searchMemes(String q, Integer page, Integer limit, LocaleCode locale) {
         return ResponseEntity.ok(memeService.search(
             q,
             Optional.ofNullable(page).orElse(0),
