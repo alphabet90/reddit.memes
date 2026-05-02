@@ -28,9 +28,11 @@ function humanize(slug: string): string {
 }
 
 function toCategory(api: ApiCategorySummary): Category {
+  const translation =
+    api.translations?.find((t) => t.locale === "es") ?? api.translations?.[0];
   return {
     slug: api.category,
-    name: humanize(api.category),
+    name: translation?.name ?? humanize(api.category),
     count: api.count,
     topScore: api.top_score,
     iconName: iconBySlug[api.category] ?? defaultIcon,
@@ -39,8 +41,8 @@ function toCategory(api: ApiCategorySummary): Category {
 
 /** All categories, ordered by count (largest first). */
 export async function getCategories(): Promise<Category[]> {
-  const list = await fetchCategories();
-  return list
+  const page = await fetchCategories({ limit: 100 });
+  return page.data
     .map(toCategory)
     .sort((a, b) => b.count - a.count);
 }

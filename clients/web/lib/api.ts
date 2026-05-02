@@ -1,17 +1,21 @@
 /**
- * Typed client for the OpenMEME memes API.
+ * Typed client for the OpenMEME memes API v2.
  *
- * Contract: https://api-production-681e.up.railway.app  (OpenAPI 3.0.3)
+ * Contract: https://api-production-681e.up.railway.app  (OpenAPI 3.0.3 v2)
  * Server-side fetches use Next.js' built-in `cache` + `revalidate`
  * options for ISR — no third-party SWR layer needed for SSR/SSG.
  *
- * Image URLs are constructed via {@link cdnUrl}, never returned as
- * absolute URLs by the API; the API ships only `image_path`.
+ * V2: multilingual schema. Every read endpoint accepts `?locale=`.
+ * `Meme` carries `translations[]` (per-locale title/description) and
+ * `images[]` (multi-image support, `is_primary` marks the lead image).
+ * Image URLs are constructed via {@link cdnUrl} from `path` fields.
  */
 
 import { site } from "@/lib/site";
 
 /* ───────────────────────── API contract types ───────────────────────── */
+
+export type LocaleCode = "en" | "es" | "pt" | "fr" | "de" | "ar";
 
 export interface ApiStats {
   total_memes: number;
@@ -21,24 +25,55 @@ export interface ApiStats {
   indexed_at: string;
 }
 
+export interface ApiCategoryTranslation {
+  locale: LocaleCode;
+  name: string;
+  description?: string | null;
+}
+
 export interface ApiCategorySummary {
   category: string;
   count: number;
   top_score: number;
+  translations?: ApiCategoryTranslation[];
+}
+
+export interface ApiCategoryPage {
+  data: ApiCategorySummary[];
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface ApiMemeTranslation {
+  locale: LocaleCode;
+  title: string;
+  description?: string | null;
+}
+
+export interface ApiMemeImage {
+  path: string;
+  width?: number | null;
+  height?: number | null;
+  bytes?: number | null;
+  mime_type?: string | null;
+  position: number;
+  is_primary: boolean;
 }
 
 export interface ApiMeme {
   slug: string;
   category: string;
-  title: string;
-  description?: string;
-  author?: string;
-  subreddit?: string;
+  default_locale: LocaleCode;
+  author?: string | null;
+  subreddit?: string | null;
   score?: number;
-  created_at?: string;
-  source_url?: string;
-  post_url?: string;
-  image_path?: string;
+  created_at?: string | null;
+  source_url?: string | null;
+  post_url?: string | null;
+  translations: ApiMemeTranslation[];
+  images: ApiMemeImage[];
   tags?: string[];
 }
 
@@ -48,6 +83,17 @@ export interface ApiMemePage {
   limit: number;
   total: number;
   total_pages: number;
+}
+
+export interface ApiSearchResult {
+  slug: string;
+  category: string;
+  author?: string | null;
+  score: number;
+  title: string;
+  description?: string | null;
+  image_path?: string | null;
+  tags: string[];
 }
 
 export type SortKey = "score" | "created_at" | "title";
@@ -101,7 +147,6 @@ async function apiGet<T>(
 
   if (!res.ok) {
     if (res.status === 404 && opts.allow404) {
-      // Caller wants null on miss; surface a sentinel.
       throw new ApiError(404, url.pathname, "Not found");
     }
     throw new ApiError(
@@ -117,13 +162,12 @@ async function apiGet<T>(
 /* ──────────────────────────── Public helpers ────────────────────────── */
 
 /**
- * Build a public CDN URL for an image_path returned by the API.
+ * Build a public CDN URL for an image path returned by the API.
  * The API ships paths like `memes/argentina-reaction/foo.jpg`; the
  * worker serves them at the CDN root.
  */
 export function cdnUrl(imagePath: string | undefined | null): string | null {
   if (!imagePath) return null;
-  // Strip a leading slash if the API ever sends one.
   const cleaned = imagePath.replace(/^\/+/, "");
   return `${site.cdnBaseUrl}/${encodePathPart(cleaned)}`;
 }
@@ -133,11 +177,17 @@ export function fetchStats(): Promise<ApiStats> {
   return apiGet<ApiStats>("/", {}, { revalidate: 3600, tags: ["stats"] });
 }
 
-/** GET /categories — full taxonomy with counts. Cached for 1 hour. */
-export function fetchCategories(): Promise<ApiCategorySummary[]> {
-  return apiGet<ApiCategorySummary[]>(
+interface ListCategoriesArgs {
+  page?: number;
+  limit?: number;
+  locale?: LocaleCode;
+}
+
+/** GET /categories — paginated taxonomy with counts. Cached for 1 hour. */
+export function fetchCategories(args: ListCategoriesArgs = {}): Promise<ApiCategoryPage> {
+  return apiGet<ApiCategoryPage>(
     "/categories",
-    {},
+    { page: args.page, limit: args.limit, locale: args.locale },
     { revalidate: 3600, tags: ["categories"] },
   );
 }
@@ -148,6 +198,7 @@ interface ListMemesArgs {
   category?: string;
   subreddit?: string;
   sort?: SortKey;
+  locale?: LocaleCode;
 }
 
 /** GET /memes — paginated, filterable, sortable. */
@@ -158,6 +209,7 @@ export function fetchMemes(args: ListMemesArgs = {}): Promise<ApiMemePage> {
     category: args.category,
     subreddit: args.subreddit,
     sort: args.sort,
+    locale: args.locale,
   });
 }
 
@@ -165,6 +217,7 @@ interface ListByCategoryArgs {
   page?: number;
   limit?: number;
   sort?: SortKey;
+  locale?: LocaleCode;
 }
 
 /** GET /memes/{category} — null if the category does not exist. */
@@ -175,7 +228,7 @@ export async function fetchMemesByCategory(
   try {
     return await apiGet<ApiMemePage>(
       `/memes/${encodePathPart(category)}`,
-      { page: args.page, limit: args.limit, sort: args.sort },
+      { page: args.page, limit: args.limit, sort: args.sort, locale: args.locale },
       { allow404: true },
     );
   } catch (err) {
@@ -188,11 +241,12 @@ export async function fetchMemesByCategory(
 export async function fetchMeme(
   category: string,
   slug: string,
+  locale?: LocaleCode,
 ): Promise<ApiMeme | null> {
   try {
     return await apiGet<ApiMeme>(
       `/memes/${encodePathPart(category)}/${encodePathPart(slug)}`,
-      {},
+      locale ? { locale } : {},
       { allow404: true },
     );
   } catch (err) {
@@ -205,17 +259,16 @@ interface SearchArgs {
   q: string;
   page?: number;
   limit?: number;
+  locale?: LocaleCode;
 }
 
-/** GET /search — empty page when q is empty (avoids the 400). */
-export async function searchMemes(args: SearchArgs): Promise<ApiMemePage> {
+/** GET /search — returns a flat array of results (no pagination envelope). Empty q returns []. */
+export async function searchMemes(args: SearchArgs): Promise<ApiSearchResult[]> {
   const q = args.q.trim();
-  if (!q) {
-    return { data: [], page: 0, limit: args.limit ?? 20, total: 0, total_pages: 0 };
-  }
-  return apiGet<ApiMemePage>(
+  if (!q) return [];
+  return apiGet<ApiSearchResult[]>(
     "/search",
-    { q, page: args.page, limit: args.limit },
+    { q, page: args.page, limit: args.limit, locale: args.locale },
     { revalidate: 60 },
   );
 }
