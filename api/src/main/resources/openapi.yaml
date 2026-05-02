@@ -202,7 +202,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MemePage"
+                type: array
+                items:
+                  $ref: "#/components/schemas/SearchResult"
         "400":
           description: Missing or empty q parameter
           content:
@@ -373,6 +375,32 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MemeImage"
+        tags:
+          type: array
+          items:
+            type: string
+
+    SearchResult:
+      type: object
+      required: [slug, category, score, title, tags]
+      properties:
+        slug:
+          type: string
+        category:
+          type: string
+        author:
+          type: string
+          nullable: true
+        score:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        path:
+          type: string
+          nullable: true
         tags:
           type: array
           items:
