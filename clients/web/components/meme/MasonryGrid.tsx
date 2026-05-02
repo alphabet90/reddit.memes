@@ -1,6 +1,4 @@
-"use client";
-
-import { useState } from "react";
+import Link from "next/link";
 import type { Meme } from "@/lib/types";
 import { MemeCard } from "./MemeCard";
 import styles from "./MasonryGrid.module.css";
@@ -8,23 +6,13 @@ import styles from "./MasonryGrid.module.css";
 type MasonryGridProps = {
   memes: Meme[];
   ariaLabel: string;
+  moreHref?: string;
 };
 
-/**
- * Masonry grid with a "Ver más" CSS-clipped reveal. Collapsed state
- * shows a fade-out overlay; expanded reveals the full column flow.
- * Uses CSS `columns` for true masonry without JS layout.
- */
-export function MasonryGrid({ memes, ariaLabel }: MasonryGridProps) {
-  const [expanded, setExpanded] = useState(false);
-
+export function MasonryGrid({ memes, ariaLabel, moreHref }: MasonryGridProps) {
   return (
     <div className={styles.wrap}>
-      <ul
-        className={`${styles.grid} ${expanded ? styles.expanded : ""}`.trim()}
-        aria-label={ariaLabel}
-        role="list"
-      >
+      <ul className={styles.grid} aria-label={ariaLabel} role="list">
         {memes.map((m) => (
           <li key={m.id} className={styles.item}>
             <MemeCard meme={m} naturalSize />
@@ -32,21 +20,13 @@ export function MasonryGrid({ memes, ariaLabel }: MasonryGridProps) {
         ))}
       </ul>
 
-      <div
-        className={`${styles.fade} ${expanded ? styles.fadeHidden : ""}`.trim()}
-        aria-hidden="true"
-      />
-
-      <div className={styles.more}>
-        <button
-          type="button"
-          className={styles.btnMore}
-          onClick={() => setExpanded((v) => !v)}
-          aria-expanded={expanded}
-        >
-          {expanded ? "Ver menos" : "Ver más populares"}
-        </button>
-      </div>
+      {moreHref && (
+        <div className={styles.more}>
+          <Link href={moreHref} className={styles.btnMore}>
+            Ver más
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
