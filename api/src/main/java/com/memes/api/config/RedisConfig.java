@@ -2,7 +2,11 @@ package com.memes.api.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.annotation.CachingConfigurer;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -10,13 +14,14 @@ import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.lang.Nullable;
 
 import java.time.Duration;
 import java.util.Map;
 
 @Configuration
 @EnableCaching
-public class RedisConfig {
+public class RedisConfig implements CachingConfigurer {
 
     // Cache names carry a "-v2" suffix so any V1-shaped cache entries left over
     // from a previous deploy are ignored after the V2 schema migration. The
@@ -43,6 +48,11 @@ public class RedisConfig {
         return new GenericJackson2JsonRedisSerializer(redisMapper);
     }
 
+    @Override
+    public CacheErrorHandler errorHandler() {
+        return new ResilientCacheErrorHandler();
+    }
+
     private RedisCacheConfiguration cacheConfig(Duration ttl) {
         return RedisCacheConfiguration.defaultCacheConfig()
             .entryTtl(ttl)
@@ -64,5 +74,33 @@ public class RedisConfig {
             .cacheDefaults(cacheConfig(Duration.ofMinutes(10)))
             .withInitialCacheConfigurations(configs)
             .build();
+    }
+
+    @Slf4j
+    private static class ResilientCacheErrorHandler implements CacheErrorHandler {
+
+        @Override
+        public void handleCacheGetError(RuntimeException ex, Cache cache, Object key) {
+            log.warn("Cache get error — treating as miss; cache='{}' key='{}': {}",
+                cache.getName(), key, ex.getMessage());
+        }
+
+        @Override
+        public void handleCachePutError(RuntimeException ex, Cache cache, Object key,
+                                        @Nullable Object value) {
+            log.warn("Cache put error; cache='{}' key='{}': {}",
+                cache.getName(), key, ex.getMessage());
+        }
+
+        @Override
+        public void handleCacheEvictError(RuntimeException ex, Cache cache, Object key) {
+            log.warn("Cache evict error; cache='{}' key='{}': {}",
+                cache.getName(), key, ex.getMessage());
+        }
+
+        @Override
+        public void handleCacheClearError(RuntimeException ex, Cache cache) {
+            log.warn("Cache clear error; cache='{}': {}", cache.getName(), ex.getMessage());
+        }
     }
 }
