@@ -64,7 +64,12 @@ public class MemeRepository {
         }
     }
 
-    public List<CategoryRow> findAllCategories(String locale) {
+    public int countCategories() {
+        Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM category_counts", Integer.class);
+        return Optional.ofNullable(count).orElse(0);
+    }
+
+    public List<CategoryRow> findAllCategories(String locale, int offset, int limit) {
         String resolved = resolveLocale(locale);
         List<Map<String, Object>> rows = jdbc.queryForList(
             "SELECT cc.category_id, cc.category, cc.count, cc.top_score, "
@@ -72,8 +77,9 @@ public class MemeRepository {
                 + "FROM   category_counts cc "
                 + "LEFT   JOIN category_translations ct "
                 + "       ON ct.category_id = cc.category_id AND ct.locale = ?::locale_code "
-                + "ORDER  BY cc.count DESC, cc.category ASC",
-            resolved
+                + "ORDER  BY cc.count DESC, cc.category ASC "
+                + "LIMIT ? OFFSET ?",
+            resolved, limit, offset
         );
 
         // Two-pass so the CategoryRow snapshot is built once with a complete list.

@@ -1,7 +1,7 @@
 package com.memes.api.controller;
 
 import com.memes.api.generated.api.MemesApiDelegate;
-import com.memes.api.generated.model.CategorySummary;
+import com.memes.api.generated.model.CategoryPage;
 import com.memes.api.generated.model.LocaleCode;
 import com.memes.api.generated.model.Meme;
 import com.memes.api.generated.model.MemePage;
@@ -28,8 +28,12 @@ public class MemesApiDelegateImpl implements MemesApiDelegate {
     }
 
     @Override
-    public ResponseEntity<List<CategorySummary>> listCategories(LocaleCode locale) {
-        return ResponseEntity.ok(memeService.listCategories(localeValue(locale)));
+    public ResponseEntity<CategoryPage> listCategories(Integer page, Integer limit, LocaleCode locale) {
+        return ResponseEntity.ok(memeService.listCategories(
+            localeValue(locale),
+            Optional.ofNullable(page).orElse(0),
+            Optional.ofNullable(limit).orElse(20)
+        ));
     }
 
     @Override

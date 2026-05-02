@@ -3,6 +3,7 @@ package com.memes.api.controller;
 import com.memes.api.config.LocaleCodeConverter;
 import com.memes.api.config.LoggingProperties;
 import com.memes.api.filter.ApiKeyAuthFilter;
+import com.memes.api.generated.model.CategoryPage;
 import com.memes.api.generated.model.CategorySummary;
 import com.memes.api.generated.model.LocaleCode;
 import com.memes.api.generated.model.Meme;
@@ -65,12 +66,46 @@ class MemesControllerTest {
         cs.setCategory("argentina-football");
         cs.setCount(45);
         cs.setTopScore(5200);
-        when(memeService.listCategories(anyString())).thenReturn(List.of(cs));
+        CategoryPage page = new CategoryPage();
+        page.setData(List.of(cs));
+        page.setPage(0);
+        page.setLimit(20);
+        page.setTotal(1);
+        page.setTotalPages(1);
+        when(memeService.listCategories(anyString(), anyInt(), anyInt())).thenReturn(page);
 
         mockMvc.perform(get("/categories"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].category").value("argentina-football"))
-            .andExpect(jsonPath("$[0].count").value(45));
+            .andExpect(jsonPath("$.data[0].category").value("argentina-football"))
+            .andExpect(jsonPath("$.data[0].count").value(45))
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.limit").value(20))
+            .andExpect(jsonPath("$.total").value(1))
+            .andExpect(jsonPath("$.total_pages").value(1));
+    }
+
+    @Test
+    void listCategories_paginatesWithCustomParams() throws Exception {
+        CategoryPage page = new CategoryPage();
+        page.setData(List.of());
+        page.setPage(2);
+        page.setLimit(5);
+        page.setTotal(50);
+        page.setTotalPages(10);
+        when(memeService.listCategories(anyString(), anyInt(), anyInt())).thenReturn(page);
+
+        mockMvc.perform(get("/categories?page=2&limit=5"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.page").value(2))
+            .andExpect(jsonPath("$.limit").value(5))
+            .andExpect(jsonPath("$.total").value(50))
+            .andExpect(jsonPath("$.total_pages").value(10));
+
+        org.mockito.Mockito.verify(memeService).listCategories(
+            org.mockito.ArgumentMatchers.eq("en"),
+            org.mockito.ArgumentMatchers.eq(2),
+            org.mockito.ArgumentMatchers.eq(5)
+        );
     }
 
     @Test
