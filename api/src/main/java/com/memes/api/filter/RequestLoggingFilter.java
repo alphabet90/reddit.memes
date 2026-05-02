@@ -68,6 +68,18 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             MDC.put("event.duration", String.valueOf(duration * 1_000_000L));
             logRequestBody(wrappedRequest, traceId);
             logOutgoingResponse(wrappedResponse, traceId, duration);
+        } catch (Exception e) {
+            // Log the error here while MDC still has the trace context, then re-throw so
+            // Spring's error handling can still produce the proper HTTP response. The
+            // StandardWrapperValve / DispatcherServlet loggers are suppressed in
+            // logback-spring.xml to avoid a duplicate entry with an empty trace ID.
+            long duration = System.currentTimeMillis() - startTime;
+            MDC.put("http.response.status_code", "500");
+            MDC.put("event.duration", String.valueOf(duration * 1_000_000L));
+            log.error("[{}] <-- 500 in {}ms unhandled exception", traceId, duration, e);
+            if (e instanceof RuntimeException re) throw re;
+            if (e instanceof IOException ioe) throw ioe;
+            throw (ServletException) e;
         } finally {
             wrappedResponse.copyBodyToResponse();
             MDC.clear();
