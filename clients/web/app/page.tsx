@@ -37,7 +37,7 @@ export default async function HomePage() {
   // ISR will refill the section on the next request.
   const [popularMemes, categories, trending] = await Promise.all([
     getPopularMemes(25).catch(() => []),
-    getCategories().catch(() => []),
+    getCategories().then((c) => c.slice(0, 10)).catch(() => []),
     getTrending().catch(() => []),
   ]);
 
