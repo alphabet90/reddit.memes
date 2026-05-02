@@ -59,6 +59,7 @@ export default async function HomePage() {
                   <MasonryGrid
                     memes={popularMemes}
                     ariaLabel="Memes populares"
+                    moreHref="/memes/populares"
                   />
                 </section>
               </div>

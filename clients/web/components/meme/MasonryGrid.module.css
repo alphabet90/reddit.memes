@@ -9,38 +9,12 @@
   margin: 0;
   columns: 4;
   column-gap: 10px;
-  max-height: 520px;
-  overflow: hidden;
-  transition: max-height 500ms var(--ease-out);
-}
-
-.grid.expanded {
-  max-height: 4000px;
 }
 
 .item {
   break-inside: avoid;
   margin-bottom: 10px;
   display: block;
-}
-
-.fade {
-  position: absolute;
-  bottom: 48px;
-  left: 0;
-  right: 0;
-  height: 140px;
-  background: linear-gradient(
-    to top,
-    var(--bg-primary) 20%,
-    transparent 100%
-  );
-  pointer-events: none;
-  transition: opacity 300ms var(--ease-out);
-}
-
-.fadeHidden {
-  opacity: 0;
 }
 
 .more {
