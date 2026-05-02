@@ -1,6 +1,7 @@
 package com.memes.api.service;
 
 import com.memes.api.config.RedisConfig;
+import com.memes.api.generated.model.CategoryPage;
 import com.memes.api.generated.model.CategorySummary;
 import com.memes.api.generated.model.CategoryTranslation;
 import com.memes.api.generated.model.LocaleCode;
@@ -46,11 +47,18 @@ public class MemeService {
         return stats;
     }
 
-    @Cacheable(value = RedisConfig.CACHE_CATEGORIES, key = "#locale")
-    public List<CategorySummary> listCategories(String locale) {
-        return memeRepository.findAllCategories(locale).stream()
-            .map(MemeService::toCategorySummary)
-            .toList();
+    @Cacheable(value = RedisConfig.CACHE_CATEGORIES, key = "#locale + '-' + #page + '-' + #limit")
+    public CategoryPage listCategories(String locale, int page, int limit) {
+        int offset = page * limit;
+        List<CategoryRow> rows = memeRepository.findAllCategories(locale, offset, limit);
+        int total = memeRepository.countCategories();
+        CategoryPage cp = new CategoryPage();
+        cp.setData(rows.stream().map(MemeService::toCategorySummary).toList());
+        cp.setPage(page);
+        cp.setLimit(limit);
+        cp.setTotal(total);
+        cp.setTotalPages(limit > 0 ? (int) Math.ceil((double) total / limit) : 0);
+        return cp;
     }
 
     @Cacheable(value = RedisConfig.CACHE_MEME_LIST,
