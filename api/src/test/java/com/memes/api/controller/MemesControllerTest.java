@@ -132,7 +132,7 @@ class MemesControllerTest {
         sr.setScore(3035);
         sr.setTitle("AFIP Tax Man Cries While Peeking Over Wall");
         sr.setDescription("A figure wearing an AFIP cap peers over a brick wall with tears");
-        sr.setPath("memes/argentina-afip/afip-peeking-over-wall-crying.jpg");
+        sr.setImagePath("memes/argentina-afip/afip-peeking-over-wall-crying.jpg");
         sr.setTags(List.of("argentina", "argentina-afip"));
         when(memeService.search(anyString(), anyInt(), anyInt(), anyString())).thenReturn(List.of(sr));
 
@@ -143,7 +143,7 @@ class MemesControllerTest {
             .andExpect(jsonPath("$[0].author").value("Mati4s_rp"))
             .andExpect(jsonPath("$[0].score").value(3035))
             .andExpect(jsonPath("$[0].title").value("AFIP Tax Man Cries While Peeking Over Wall"))
-            .andExpect(jsonPath("$[0].path").value("memes/argentina-afip/afip-peeking-over-wall-crying.jpg"))
+            .andExpect(jsonPath("$[0].image_path").value("memes/argentina-afip/afip-peeking-over-wall-crying.jpg"))
             .andExpect(jsonPath("$[0].tags[0]").value("argentina"))
             .andExpect(jsonPath("$[0].tags[1]").value("argentina-afip"));
     }

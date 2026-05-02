@@ -107,7 +107,7 @@ public class MemeService {
             .findFirst()
             .or(() -> row.images().stream().findFirst())
             .map(MemeImageRow::path)
-            .ifPresent(result::setPath);
+            .ifPresent(result::setImagePath);
 
         return result;
     }

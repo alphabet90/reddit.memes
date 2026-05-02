@@ -398,7 +398,7 @@ components:
         description:
           type: string
           nullable: true
-        path:
+        image_path:
           type: string
           nullable: true
         tags:
