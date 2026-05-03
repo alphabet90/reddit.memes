@@ -104,9 +104,19 @@ def run(
     else:
         posts = fetch_posts(subreddit, limit=limit, sort=sort, timeframe=timeframe, page=page)
 
-    all_urls: list[str] = []
     seen_in_run: set[str] = set()
     url_to_meta: dict[str, PostMetadata] = {}
+
+    tmp_dir = config.TMP_DIR
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    pending_memes: list = []
+    pending_sha1: dict[str, str] = {}
+    pending_paths: dict[str, Path] = {}
+    total_memes = 0
+    batch_num = 0
+
+    logger.info("Fetched %d posts — processing per-post", len(posts))
 
     for post in posts:
         post_id = post["name"]
@@ -123,31 +133,22 @@ def run(
             permalink=post.get("permalink", ""),
         )
 
+        post_urls: list[str] = []
         for url, comment_score in fetch_comment_images(post, min_comment_upvotes):
             if url in seen_in_run or tracker.is_processed(url):
                 continue
             seen_in_run.add(url)
-            all_urls.append(url)
+            post_urls.append(url)
             url_to_meta[url] = dataclasses.replace(meta, score=comment_score)
 
         tracker.mark_processed(post_id)
 
-    logger.info("Fetched %d posts — %d new image URLs to process", len(posts), len(all_urls))
+        if not post_urls:
+            continue
 
-    if not all_urls:
-        tracker.flush()
-        logger.info("Nothing new to process.")
-        return
+        logger.info("Post %s > %d image(s) found > starting classification", post_id, len(post_urls))
 
-    tmp_dir = config.TMP_DIR
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-
-    total_memes = 0
-
-    for batch_num, batch_urls in enumerate(_chunks(all_urls, batch_size), start=1):
-        logger.info("--- Batch %d: %d URLs ---", batch_num, len(batch_urls))
-
-        downloaded = download_batch(batch_urls, tmp_dir, is_processed=tracker.is_processed)
+        downloaded = download_batch(post_urls, tmp_dir, is_processed=tracker.is_processed)
 
         # Filter content-identical images (same bytes, different URL) before classifying.
         clean_downloaded: list[tuple[str, Path, str]] = []
@@ -160,7 +161,7 @@ def run(
             else:
                 clean_downloaded.append((url, path, sha1))
 
-        for url in batch_urls:
+        for url in post_urls:
             if not any(u == url for u, _ in downloaded):
                 tracker.mark_processed(url)
         tracker.flush()
@@ -172,8 +173,8 @@ def run(
         results = _classifier.classify_batch(downloaded_for_classify, max_workers=classify_workers)
 
         url_to_sha1 = {url: sha1 for url, _, sha1 in clean_downloaded}
+        url_to_path = dict(downloaded_for_classify)
 
-        meme_items: list = []
         error_count = 0
         for result in results:
             if result.error:
@@ -183,7 +184,9 @@ def run(
                     result.url, result.error,
                 )
             elif result.is_meme:
-                meme_items.append(result)
+                pending_memes.append(result)
+                pending_sha1[result.url] = url_to_sha1[result.url]
+                pending_paths[result.url] = url_to_path[result.url]
             else:
                 tracker.mark_processed(result.url)
         tracker.flush()
@@ -196,38 +199,66 @@ def run(
                 )
                 return
             logger.warning(
-                "All %d items in batch failed classification — "
+                "All %d items in this post failed classification — "
                 "they will be retried next run.",
                 error_count,
             )
 
-        if meme_items and not dry_run:
-            url_to_path = dict(downloaded_for_classify)
-            items_with_paths = [
-                (result, url_to_path[result.url])
-                for result in meme_items
-                if result.url in url_to_path
-            ]
-
-            saved = save_and_commit_batch(items_with_paths, repo_path, batch_num, subreddit, url_to_meta=url_to_meta, locale=locale)
-
+        # Commit once enough memes have accumulated across posts.
+        if len(pending_memes) >= batch_size and not dry_run:
+            batch_num += 1
+            items_with_paths = [(r, pending_paths[r.url]) for r in pending_memes]
+            save_and_commit_batch(items_with_paths, repo_path, batch_num, subreddit, url_to_meta=url_to_meta, locale=locale)
             for result, _ in items_with_paths:
                 tracker.mark_processed(result.url)
-                if result.url in url_to_sha1:
-                    tracker.mark_content_processed(url_to_sha1[result.url])
+                tracker.mark_content_processed(pending_sha1[result.url])
                 total_memes += 1
             tracker.flush()
+            for r in pending_memes:
+                try:
+                    pending_paths[r.url].unlink()
+                except OSError:
+                    pass
+            pending_memes.clear()
+            pending_sha1.clear()
+            pending_paths.clear()
 
-            del saved
+        # Cleanup tmp files for rejected/errored images (pending memes keep their file until commit).
+        pending_urls = {r.url for r in pending_memes}
+        for url, tmp_path, _ in clean_downloaded:
+            if url not in pending_urls:
+                try:
+                    tmp_path.unlink()
+                except OSError:
+                    pass
 
-        elif meme_items and dry_run:
-            for result in meme_items:
-                logger.info("[DRY RUN] Would save: %s/%s (%s)", result.category, result.filename_slug, result.url)
-
-        for _, tmp_path, _ in clean_downloaded:
+    # Flush any remaining memes that didn't fill a full batch.
+    if pending_memes and not dry_run:
+        batch_num += 1
+        items_with_paths = [(r, pending_paths[r.url]) for r in pending_memes]
+        save_and_commit_batch(items_with_paths, repo_path, batch_num, subreddit, url_to_meta=url_to_meta, locale=locale)
+        for result, _ in items_with_paths:
+            tracker.mark_processed(result.url)
+            tracker.mark_content_processed(pending_sha1[result.url])
+            total_memes += 1
+        tracker.flush()
+        for r in pending_memes:
             try:
-                tmp_path.unlink()
+                pending_paths[r.url].unlink()
             except OSError:
                 pass
+
+    if pending_memes and dry_run:
+        for result in pending_memes:
+            logger.info("[DRY RUN] Would save: %s/%s (%s)", result.category, result.filename_slug, result.url)
+        for r in pending_memes:
+            try:
+                pending_paths[r.url].unlink()
+            except OSError:
+                pass
+
+    if not total_memes and not pending_memes:
+        tracker.flush()
+        logger.info("Nothing new to process.")
 
     logger.info("Pipeline complete. Total memes saved: %d", total_memes)
