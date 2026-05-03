@@ -2,12 +2,12 @@ import { defineRouting } from "next-intl/routing";
 
 export const locales = ["en", "es", "pt", "fr", "de", "ar"] as const;
 export type Locale = (typeof locales)[number];
-export const defaultLocale: Locale = "en";
+export const defaultLocale: Locale = "es";
 
 /** BCP-47 language tag for each locale (used in <html lang>). */
 export const localeLangMap: Record<Locale, string> = {
   en: "en",
-  es: "es",
+  es: "es-AR",
   pt: "pt",
   fr: "fr",
   de: "de",
@@ -17,7 +17,7 @@ export const localeLangMap: Record<Locale, string> = {
 /** OpenGraph locale format (underscore-separated IETF tags). */
 export const localeOgMap: Record<Locale, string> = {
   en: "en_US",
-  es: "es_ES",
+  es: "es_AR",
   pt: "pt_BR",
   fr: "fr_FR",
   de: "de_DE",
