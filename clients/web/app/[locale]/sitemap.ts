@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { locales, type Locale } from "@/i18n/routing";
+import { type Locale } from "@/i18n/routing";
 import { site } from "@/lib/site";
 import { getCategories } from "@/lib/data/categories";
 import { fetchMemes } from "@/lib/api";
@@ -11,10 +11,6 @@ export const revalidate = 3600;
 
 const MEME_LIMIT = 1000;
 const PAGE_SIZE = 100;
-
-export async function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
 
 export default async function sitemap(
   props?: { params?: { locale?: string } },
