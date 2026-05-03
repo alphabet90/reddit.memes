@@ -1,60 +1,59 @@
+import { getLocale, getTranslations } from "next-intl/server";
 import { SearchIcon, StarIcon, BoltIcon, SmileIcon, ShuffleIcon } from "@/components/icons";
+import { localePath } from "@/lib/i18n-utils";
+import type { Locale } from "@/i18n/routing";
 import styles from "./Hero.module.css";
 
-const filters = [
-  { id: "top",     label: "Top",      Icon: StarIcon,    active: true  },
-  { id: "nuevos",  label: "Nuevos",   Icon: BoltIcon,    active: false },
-  { id: "clasicos",label: "Clásicos", Icon: SmileIcon,   active: false },
-  { id: "random",  label: "Random",   Icon: ShuffleIcon, active: false },
-];
+export async function Hero() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations("hero");
 
-/**
- * Hero — H1 + search + filter pills + collage visual.
- * SEO: wraps the primary H1 and a concise description. The
- * search is a real <form> GETting to /buscar so crawlers and
- * no-JS visitors both work.
- */
-export function Hero() {
+  const filters = [
+    { id: "top",      label: t("filter_top"),      Icon: StarIcon,    active: true  },
+    { id: "nuevos",   label: t("filter_nuevos"),   Icon: BoltIcon,    active: false },
+    { id: "clasicos", label: t("filter_clasicos"), Icon: SmileIcon,   active: false },
+    { id: "random",   label: t("filter_random"),   Icon: ShuffleIcon, active: false },
+  ];
+
   return (
     <section className={styles.hero} aria-labelledby="hero-title">
       <div className="container">
         <div className={styles.inner}>
           <div className={styles.content}>
             <p className={styles.eyebrow}>
-              <span aria-hidden="true">🔥</span> El repositorio más grande de Argentina
+              <span aria-hidden="true">🔥</span> {t("eyebrow")}
             </p>
 
             <h1 id="hero-title" className={styles.title}>
-              <span>Todos los</span>
-              <span className={styles.highlight}>memes.</span>
-              <span>En un solo</span>
-              <span>lugar.</span>
+              <span>{t("title_line1")}</span>
+              <span className={styles.highlight}>{t("title_highlight")}</span>
+              <span>{t("title_line2")}</span>
+              <span>{t("title_line3")}</span>
             </h1>
 
             <p className={styles.sub}>
-              El repositorio de memes más grande de Argentina.
+              {t("sub")}
               <br />
-              Subido por la gente.{" "}
-              <a href="/manifiesto">Para la gente.</a>
+              <a href={localePath(locale, "/manifiesto")}>{t("sub_link")}</a>
             </p>
 
             <form
-              action="/buscar"
+              action={localePath(locale, "/buscar")}
               role="search"
-              aria-label="Buscar memes"
+              aria-label={t("search_label")}
               className={styles.search}
             >
               <label className={styles.searchField}>
-                <span className="sr-only">Buscar memes</span>
+                <span className="sr-only">{t("search_label")}</span>
                 <SearchIcon size={16} />
                 <input
                   type="search"
                   name="q"
-                  placeholder="Buscar memes…"
+                  placeholder={t("search_placeholder")}
                   autoComplete="off"
                 />
               </label>
-              <button type="submit" className={styles.searchBtn} aria-label="Buscar">
+              <button type="submit" className={styles.searchBtn} aria-label={t("search_label")}>
                 <SearchIcon size={16} />
               </button>
             </form>
@@ -62,7 +61,7 @@ export function Hero() {
             <div
               className={styles.pills}
               role="tablist"
-              aria-label="Filtrar memes"
+              aria-label={t("search_label")}
             >
               {filters.map(({ id, label, Icon, active }) => (
                 <button

@@ -6,11 +6,11 @@ export default function manifest(): MetadataRoute.Manifest {
     name: `${site.name} — ${site.tagline}`,
     short_name: site.name,
     description: site.description,
-    start_url: "/",
+    start_url: "/en",
     display: "standalone",
     background_color: "#0D0D0D",
     theme_color: "#0D0D0D",
-    lang: "es-AR",
+    lang: "en",
     icons: [
       {
         src: "/favicon.ico",

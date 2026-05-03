@@ -1,5 +1,5 @@
 import type { Category, CategoryIcon } from "@/lib/types";
-import { fetchCategories, type ApiCategorySummary } from "@/lib/api";
+import { fetchCategories, type ApiCategorySummary, type LocaleCode } from "@/lib/api";
 
 /**
  * Map known category slugs to brand icons. Categories the API
@@ -27,9 +27,10 @@ function humanize(slug: string): string {
     .join(" ");
 }
 
-function toCategory(api: ApiCategorySummary): Category {
+function toCategory(api: ApiCategorySummary, locale: LocaleCode = "en"): Category {
   const translation =
-    api.translations?.find((t) => t.locale === "es") ?? api.translations?.[0];
+    api.translations?.find((t) => t.locale === locale) ??
+    api.translations?.[0];
   return {
     slug: api.category,
     name: translation?.name ?? humanize(api.category),
@@ -40,15 +41,18 @@ function toCategory(api: ApiCategorySummary): Category {
 }
 
 /** All categories, ordered by count (largest first). */
-export async function getCategories(): Promise<Category[]> {
-  const page = await fetchCategories({ limit: 100 });
+export async function getCategories(locale: LocaleCode = "en"): Promise<Category[]> {
+  const page = await fetchCategories({ limit: 100, locale });
   return page.data
-    .map(toCategory)
+    .map((c) => toCategory(c, locale))
     .sort((a, b) => b.count - a.count);
 }
 
 /** Quick lookup for a single category — returns undefined if missing. */
-export async function getCategory(slug: string): Promise<Category | undefined> {
-  const list = await getCategories();
+export async function getCategory(
+  slug: string,
+  locale: LocaleCode = "en",
+): Promise<Category | undefined> {
+  const list = await getCategories(locale);
   return list.find((c) => c.slug === slug);
 }

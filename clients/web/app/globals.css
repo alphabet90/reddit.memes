@@ -181,3 +181,18 @@ svg {
   margin: 0 auto;
   padding: 0 var(--space-6);
 }
+
+/* ── RTL support (Arabic) ────────────────────────────────── */
+[dir="rtl"] .skip-link {
+  left: auto;
+  right: 8px;
+}
+
+/* Arabic headings fallback — Anton doesn't cover Arabic glyphs */
+:lang(ar) h1,
+:lang(ar) h2,
+:lang(ar) h3,
+:lang(ar) h4 {
+  font-family: "Noto Sans Arabic", "Cairo", system-ui, sans-serif;
+  font-weight: 700;
+}

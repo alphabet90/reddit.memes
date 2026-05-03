@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { Nav } from "@/components/nav/Nav";
 import { Footer } from "@/components/Footer";
@@ -11,22 +12,18 @@ import { SectionTitle } from "@/components/ui/SectionTitle";
 
 import { getCategoryListing, getMeme } from "@/lib/data/memes";
 import { formatCompact } from "@/lib/format";
-import {
-  breadcrumbJsonLd,
-  memeImageObjectJsonLd,
-} from "@/lib/seo";
+import { breadcrumbJsonLd, memeImageObjectJsonLd } from "@/lib/seo";
 import { site } from "@/lib/site";
+import { buildAlternates, localePath } from "@/lib/i18n-utils";
+import { localeLangMap, localeOgMap, type Locale } from "@/i18n/routing";
+import type { LocaleCode } from "@/lib/api";
 
 import styles from "./page.module.css";
 
-/** Re-render every hour — meme metadata rarely changes. */
 export const revalidate = 3600;
 
-type RouteParams = { category: string; slug: string };
-
-type Props = {
-  params: Promise<RouteParams>;
-};
+type RouteParams = { locale: Locale; category: string; slug: string };
+type Props = { params: Promise<RouteParams> };
 
 function humanize(slug: string): string {
   return slug
@@ -37,14 +34,17 @@ function humanize(slug: string): string {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { category, slug } = await params;
-  const meme = await getMeme(category, slug);
-  if (!meme) return { title: "Meme no encontrado" };
+  const { locale, category, slug } = await params;
+  const apiLocale = locale as LocaleCode;
+  const t = await getTranslations({ locale, namespace: "meme_detail" });
 
-  const canonical = `/memes/${meme.category}/${meme.slug}`;
+  const meme = await getMeme(category, slug, apiLocale);
+  if (!meme) return { title: t("not_found_title") };
+
+  const canonical = `/${locale}/memes/${meme.category}/${meme.slug}`;
   const description =
     meme.description ??
-    `${meme.title} — meme argentino subido por la gente. Descargá y compartí en ${site.name}.`;
+    t("meta_description_fallback", { title: meme.title, siteName: site.name });
 
   const images = meme.imageUrl
     ? [{ url: meme.imageUrl, alt: meme.title }]
@@ -53,13 +53,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: meme.title,
     description,
-    alternates: { canonical },
+    alternates: {
+      canonical,
+      languages: buildAlternates(`/memes/${meme.category}/${meme.slug}`),
+    },
     openGraph: {
       title: meme.title,
       description,
       type: "article",
       url: canonical,
       images,
+      locale: localeOgMap[locale],
     },
     twitter: {
       card: "summary_large_image",
@@ -72,19 +76,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function MemeDetailPage({ params }: Props) {
-  const { category, slug } = await params;
-  const meme = await getMeme(category, slug);
+  const { locale, category, slug } = await params;
+  const apiLocale = locale as LocaleCode;
+  const t = await getTranslations({ locale, namespace: "meme_detail" });
+
+  const meme = await getMeme(category, slug, apiLocale);
   if (!meme) notFound();
 
-  const related = await getCategoryListing(meme.category, { limit: 12, sort: "score" });
-  const relatedMemes = (related?.data ?? []).filter((m) => m.slug !== meme.slug).slice(0, 10);
+  const related = await getCategoryListing(meme.category, {
+    limit: 12,
+    sort: "score",
+    locale: apiLocale,
+  });
+  const relatedMemes = (related?.data ?? [])
+    .filter((m) => m.slug !== meme.slug)
+    .slice(0, 10)
+    .map((m) => ({ ...m, href: localePath(locale, m.href) }));
 
+  const categoryDisplay = humanize(meme.category);
   const breadcrumbs = [
-    { name: "Inicio", href: "/" },
-    { name: "Categorías", href: "/categorias" },
-    { name: humanize(meme.category), href: `/categorias/${meme.category}` },
-    { name: meme.title, href: meme.href },
+    { name: t("breadcrumb_inicio"), href: "/" },
+    { name: t("breadcrumb_categorias"), href: "/categorias" },
+    { name: categoryDisplay, href: `/categorias/${meme.category}` },
+    { name: meme.title, href: `/memes/${meme.category}/${meme.slug}` },
   ];
+
+  const lang = localeLangMap[locale];
 
   return (
     <>
@@ -98,7 +115,7 @@ export default async function MemeDetailPage({ params }: Props) {
                 {breadcrumbs.map((b, i) => (
                   <li key={b.href}>
                     {i < breadcrumbs.length - 1 ? (
-                      <Link href={b.href}>{b.name}</Link>
+                      <Link href={localePath(locale, b.href)}>{b.name}</Link>
                     ) : (
                       <span aria-current="page">{b.name}</span>
                     )}
@@ -131,10 +148,10 @@ export default async function MemeDetailPage({ params }: Props) {
 
               <header className={styles.meta}>
                 <Link
-                  href={`/categorias/${meme.category}`}
+                  href={localePath(locale, `/categorias/${meme.category}`)}
                   className={styles.categoryPill}
                 >
-                  {humanize(meme.category)}
+                  {categoryDisplay}
                 </Link>
 
                 <h1 className={styles.title}>{meme.title}</h1>
@@ -145,26 +162,26 @@ export default async function MemeDetailPage({ params }: Props) {
 
                 <dl className={styles.stats}>
                   <div>
-                    <dt>Score</dt>
+                    <dt>{t("score_label")}</dt>
                     <dd>{formatCompact(meme.score)}</dd>
                   </div>
                   {meme.author ? (
                     <div>
-                      <dt>Autor</dt>
+                      <dt>{t("autor_label")}</dt>
                       <dd>u/{meme.author}</dd>
                     </div>
                   ) : null}
                   {meme.subreddit ? (
                     <div>
-                      <dt>Subreddit</dt>
+                      <dt>{t("subreddit_label")}</dt>
                       <dd>r/{meme.subreddit}</dd>
                     </div>
                   ) : null}
                   <div>
-                    <dt>Publicado</dt>
+                    <dt>{t("publicado_label")}</dt>
                     <dd>
                       <time dateTime={meme.createdAt}>
-                        {new Date(meme.createdAt).toLocaleDateString("es-AR", {
+                        {new Date(meme.createdAt).toLocaleDateString(lang, {
                           day: "2-digit",
                           month: "long",
                           year: "numeric",
@@ -175,14 +192,14 @@ export default async function MemeDetailPage({ params }: Props) {
                 </dl>
 
                 {meme.tags.length ? (
-                  <ul className={styles.tags} aria-label="Etiquetas">
-                    {meme.tags.map((t) => (
-                      <li key={t}>
+                  <ul className={styles.tags} aria-label={t("etiquetas_label")}>
+                    {meme.tags.map((tag) => (
+                      <li key={tag}>
                         <Link
-                          href={`/buscar?q=${encodeURIComponent(t)}`}
+                          href={localePath(locale, `/buscar?q=${encodeURIComponent(tag)}`)}
                           className={styles.tag}
                         >
-                          #{t}
+                          #{tag}
                         </Link>
                       </li>
                     ))}
@@ -198,7 +215,7 @@ export default async function MemeDetailPage({ params }: Props) {
                       className={styles.primary}
                       download
                     >
-                      Descargar
+                      {t("descargar")}
                     </a>
                   ) : null}
                   {meme.postUrl ? (
@@ -208,7 +225,7 @@ export default async function MemeDetailPage({ params }: Props) {
                       rel="noopener noreferrer nofollow"
                       className={styles.secondary}
                     >
-                      Ver en Reddit
+                      {t("ver_reddit")}
                     </a>
                   ) : null}
                 </div>
@@ -221,11 +238,11 @@ export default async function MemeDetailPage({ params }: Props) {
                 className={styles.relatedWrap}
               >
                 <SectionTitle id="related-title" icon={<span>🔥</span>}>
-                  Más de {humanize(meme.category)}
+                  {t("related_title", { category: categoryDisplay })}
                 </SectionTitle>
                 <MemeListingGrid
                   memes={relatedMemes}
-                  ariaLabel={`Más memes de ${humanize(meme.category)}`}
+                  ariaLabel={t("related_aria", { category: categoryDisplay })}
                 />
               </section>
             ) : null}
@@ -240,7 +257,7 @@ export default async function MemeDetailPage({ params }: Props) {
         type="application/ld+json"
         strategy="beforeInteractive"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(memeImageObjectJsonLd(meme)),
+          __html: JSON.stringify(memeImageObjectJsonLd(meme, locale)),
         }}
       />
       <Script
@@ -248,7 +265,7 @@ export default async function MemeDetailPage({ params }: Props) {
         type="application/ld+json"
         strategy="beforeInteractive"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(breadcrumbJsonLd(breadcrumbs)),
+          __html: JSON.stringify(breadcrumbJsonLd(breadcrumbs, locale)),
         }}
       />
     </>
