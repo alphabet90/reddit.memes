@@ -51,7 +51,7 @@ function inferFormat(imagePath: string | undefined | null): Meme["format"] {
 
 function getTranslation(
   translations: ApiMemeTranslation[],
-  preferLocale: LocaleCode = "es",
+  preferLocale: LocaleCode = "en",
 ): ApiMemeTranslation | undefined {
   return translations.find((t) => t.locale === preferLocale) ?? translations[0];
 }
@@ -65,10 +65,10 @@ function makePlaceholder(id: string) {
 }
 
 /** Adapt a single V2 API record into the UI shape. */
-export function toMeme(api: ApiMeme): Meme {
+export function toMeme(api: ApiMeme, locale: LocaleCode = "en"): Meme {
   const id = `${api.category}/${api.slug}`;
   const tile = makePlaceholder(id);
-  const translation = getTranslation(api.translations, "es");
+  const translation = getTranslation(api.translations, locale);
   const primaryImage = getPrimaryImage(api.images);
   const createdAt = api.created_at ?? new Date(0).toISOString();
   const isNew =
@@ -121,9 +121,9 @@ export function toMemeFromSearchResult(api: ApiSearchResult): Meme {
   };
 }
 
-function toListing(page: ApiMemePage): MemeListing {
+function toListing(page: ApiMemePage, locale: LocaleCode = "en"): MemeListing {
   return {
-    data: page.data.map(toMeme),
+    data: page.data.map((m) => toMeme(m, locale)),
     pageInfo: {
       page: page.page,
       limit: page.limit,
@@ -135,19 +135,19 @@ function toListing(page: ApiMemePage): MemeListing {
 
 /* ───────────────────────────── Public API ───────────────────────────── */
 
-export async function getTopMemes(limit = 5): Promise<Meme[]> {
-  const page = await fetchMemes({ limit, sort: "score" });
-  return page.data.map(toMeme);
+export async function getTopMemes(limit = 5, locale: LocaleCode = "en"): Promise<Meme[]> {
+  const page = await fetchMemes({ limit, sort: "score", locale });
+  return page.data.map((m) => toMeme(m, locale));
 }
 
-export async function getPopularMemes(limit = 12): Promise<Meme[]> {
-  const page = await fetchMemes({ limit, sort: "score", page: 1 });
-  return page.data.map(toMeme);
+export async function getPopularMemes(limit = 12, locale: LocaleCode = "en"): Promise<Meme[]> {
+  const page = await fetchMemes({ limit, sort: "score", page: 1, locale });
+  return page.data.map((m) => toMeme(m, locale));
 }
 
-export async function getRecentMemes(limit = 12): Promise<Meme[]> {
-  const page = await fetchMemes({ limit, sort: "created_at" });
-  return page.data.map(toMeme);
+export async function getRecentMemes(limit = 12, locale: LocaleCode = "en"): Promise<Meme[]> {
+  const page = await fetchMemes({ limit, sort: "created_at", locale });
+  return page.data.map((m) => toMeme(m, locale));
 }
 
 export async function getMemeListing(args: {
@@ -155,21 +155,28 @@ export async function getMemeListing(args: {
   limit?: number;
   sort?: SortKey;
   category?: string;
+  locale?: LocaleCode;
 }): Promise<MemeListing> {
-  return toListing(await fetchMemes(args));
+  const locale = args.locale ?? "en";
+  return toListing(await fetchMemes(args), locale);
 }
 
 export async function getCategoryListing(
   category: string,
-  args: { page?: number; limit?: number; sort?: SortKey } = {},
+  args: { page?: number; limit?: number; sort?: SortKey; locale?: LocaleCode } = {},
 ): Promise<MemeListing | null> {
+  const locale = args.locale ?? "en";
   const page = await fetchMemesByCategory(category, args);
-  return page ? toListing(page) : null;
+  return page ? toListing(page, locale) : null;
 }
 
-export async function getMeme(category: string, slug: string): Promise<Meme | null> {
-  const api = await fetchMeme(category, slug);
-  return api ? toMeme(api) : null;
+export async function getMeme(
+  category: string,
+  slug: string,
+  locale: LocaleCode = "en",
+): Promise<Meme | null> {
+  const api = await fetchMeme(category, slug, locale);
+  return api ? toMeme(api, locale) : null;
 }
 
 /**
@@ -181,6 +188,7 @@ export async function searchListing(args: {
   q: string;
   page?: number;
   limit?: number;
+  locale?: LocaleCode;
 }): Promise<MemeListing> {
   const limit = args.limit ?? 20;
   const page = args.page ?? 0;

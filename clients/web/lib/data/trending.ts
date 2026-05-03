@@ -1,5 +1,5 @@
 import type { TrendingTag } from "@/lib/types";
-import { fetchMemes } from "@/lib/api";
+import { fetchMemes, type LocaleCode } from "@/lib/api";
 
 /**
  * Trending tags are derived from the top-scoring slice of recent
@@ -7,8 +7,11 @@ import { fetchMemes } from "@/lib/api";
  * each tag by aggregate score across the slice so brand-new memes
  * with high scores rank higher than older memes that share a tag.
  */
-export async function getTrending(limit = 5): Promise<TrendingTag[]> {
-  const page = await fetchMemes({ limit: 60, sort: "score" });
+export async function getTrending(
+  limit = 5,
+  locale: LocaleCode = "en",
+): Promise<TrendingTag[]> {
+  const page = await fetchMemes({ limit: 60, sort: "score", locale });
 
   const totals = new Map<string, number>();
   for (const meme of page.data) {

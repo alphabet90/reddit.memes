@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { Nav } from "@/components/nav/Nav";
 import { Footer } from "@/components/Footer";
@@ -14,12 +15,12 @@ import { SectionTitle } from "@/components/ui/SectionTitle";
 import { getCategories, getCategory } from "@/lib/data/categories";
 import { getCategoryListing } from "@/lib/data/memes";
 import { getTrending } from "@/lib/data/trending";
-import {
-  breadcrumbJsonLd,
-  categoryCollectionJsonLd,
-} from "@/lib/seo";
+import { breadcrumbJsonLd, categoryCollectionJsonLd } from "@/lib/seo";
 import { site } from "@/lib/site";
 import { formatCompact } from "@/lib/format";
+import { buildAlternates, localePath } from "@/lib/i18n-utils";
+import { localeOgMap, type Locale } from "@/i18n/routing";
+import type { LocaleCode } from "@/lib/api";
 
 import styles from "./page.module.css";
 
@@ -29,15 +30,8 @@ const PAGE_SIZE = 24;
 const SORT_VALUES = ["score", "created_at", "title"] as const;
 type SortValue = (typeof SORT_VALUES)[number];
 
-const SORT_OPTIONS = [
-  { value: "score", label: "Top" },
-  { value: "created_at", label: "Nuevos" },
-  { value: "title", label: "A–Z" },
-];
-
-type RouteParams = { slug: string };
+type RouteParams = { locale: Locale; slug: string };
 type SearchParams = { page?: string; sort?: string };
-
 type Props = {
   params: Promise<RouteParams>;
   searchParams: Promise<SearchParams>;
@@ -55,65 +49,105 @@ function parseSort(raw: string | undefined): SortValue {
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { locale, slug } = await params;
   const { page: pageRaw } = await searchParams;
-  const category = await getCategory(slug);
-  if (!category) return { title: "Categoría no encontrada" };
+  const t = await getTranslations({ locale, namespace: "categoria_slug" });
+  const apiLocale = locale as LocaleCode;
+  const category = await getCategory(slug, apiLocale);
+  if (!category) return { title: t("not_found") };
 
   const page = parsePage(pageRaw);
-  const canonical = `/categorias/${category.slug}${page > 0 ? `?page=${page}` : ""}`;
-  const description = `Memes de ${category.name} — ${formatCompact(
-    category.count,
-  )} memes argentinos. Buscá y compartí los mejores memes de ${category.name} en ${site.name}.`;
+  const canonical = `/${locale}/categorias/${category.slug}${page > 0 ? `?page=${page}` : ""}`;
 
   return {
-    title: `Memes de ${category.name}`,
-    description,
-    alternates: { canonical },
+    title: t("meta_title", { name: category.name }),
+    description: t("meta_description", {
+      name: category.name,
+      count: formatCompact(category.count),
+      siteName: site.name,
+    }),
+    alternates: {
+      canonical,
+      languages: buildAlternates(`/categorias/${category.slug}${page > 0 ? `?page=${page}` : ""}`),
+    },
     openGraph: {
-      title: `Memes de ${category.name} — ${site.name}`,
-      description,
+      title: t("og_title", { name: category.name, siteName: site.name }),
+      description: t("meta_description", {
+        name: category.name,
+        count: formatCompact(category.count),
+        siteName: site.name,
+      }),
       url: canonical,
       type: "website",
+      locale: localeOgMap[locale],
     },
     twitter: {
       card: "summary_large_image",
-      title: `Memes de ${category.name}`,
-      description,
+      title: t("meta_title", { name: category.name }),
+      description: t("meta_description", {
+        name: category.name,
+        count: formatCompact(category.count),
+        siteName: site.name,
+      }),
     },
   };
 }
 
 export default async function CategoryPage({ params, searchParams }: Props) {
-  const { slug } = await params;
+  const { locale, slug } = await params;
   const sp = await searchParams;
   const page = parsePage(sp.page);
   const sort = parseSort(sp.sort);
+  const apiLocale = locale as LocaleCode;
+  const t = await getTranslations({ locale, namespace: "categoria_slug" });
+
+  const sortOptions = [
+    { value: "score", label: t("sort_top") },
+    { value: "created_at", label: t("sort_nuevos") },
+    { value: "title", label: t("sort_az") },
+  ];
 
   const [category, listing, categories, trending] = await Promise.all([
-    getCategory(slug),
-    getCategoryListing(slug, { page, limit: PAGE_SIZE, sort }),
-    getCategories(),
-    getTrending(),
+    getCategory(slug, apiLocale),
+    getCategoryListing(slug, { page, limit: PAGE_SIZE, sort, locale: apiLocale }),
+    getCategories(apiLocale),
+    getTrending(5, apiLocale),
   ]);
 
   if (!category || !listing) notFound();
 
   const breadcrumbs = [
-    { name: "Inicio", href: "/" },
-    { name: "Categorías", href: "/categorias" },
+    { name: t("breadcrumb_inicio"), href: "/" },
+    { name: t("breadcrumb_categorias"), href: "/categorias" },
     { name: category.name, href: `/categorias/${category.slug}` },
   ];
 
+  const listingWithHref = {
+    ...listing,
+    data: listing.data.map((m) => ({ ...m, href: localePath(locale, m.href) })),
+  };
+
   const buildSortHref = (s: string) =>
-    s === "score" ? `/categorias/${slug}` : `/categorias/${slug}?sort=${s}`;
+    s === "score"
+      ? localePath(locale, `/categorias/${slug}`)
+      : localePath(locale, `/categorias/${slug}?sort=${s}`);
+
   const buildPageHref = (p: number) => {
     const qs = new URLSearchParams();
     if (p > 0) qs.set("page", String(p));
     if (sort !== "score") qs.set("sort", sort);
     const q = qs.toString();
-    return q ? `/categorias/${slug}?${q}` : `/categorias/${slug}`;
+    return q
+      ? localePath(locale, `/categorias/${slug}?${q}`)
+      : localePath(locale, `/categorias/${slug}`);
   };
+
+  const sectionTitle =
+    sort === "score"
+      ? t("section_top")
+      : sort === "created_at"
+        ? t("section_nuevos")
+        : t("section_az");
 
   return (
     <>
@@ -127,7 +161,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
                 {breadcrumbs.map((b, i) => (
                   <li key={b.href}>
                     {i < breadcrumbs.length - 1 ? (
-                      <a href={b.href}>{b.name}</a>
+                      <a href={localePath(locale, b.href)}>{b.name}</a>
                     ) : (
                       <span aria-current="page">{b.name}</span>
                     )}
@@ -138,46 +172,46 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
             <header className={styles.header}>
               <div>
-                <p className={styles.eyebrow}>Categoría</p>
+                <p className={styles.eyebrow}>{t("eyebrow")}</p>
                 <h1 className={styles.title}>{category.name}</h1>
                 <p className={styles.sub}>
-                  {formatCompact(category.count)} memes · top score{" "}
-                  {formatCompact(category.topScore)}
+                  {t("memes_count_text", {
+                    count: formatCompact(category.count),
+                    score: formatCompact(category.topScore),
+                  })}
                 </p>
               </div>
 
               <SortTabs
-                options={SORT_OPTIONS}
+                options={sortOptions}
                 active={sort}
                 buildHref={buildSortHref}
-                ariaLabel={`Ordenar memes de ${category.name}`}
+                ariaLabel={t("sort_aria", { name: category.name })}
               />
             </header>
 
             <div className={styles.layout}>
               <div className={styles.primary}>
-                {listing.data.length === 0 ? (
+                {listingWithHref.data.length === 0 ? (
                   <EmptyState
-                    title="No hay memes en esta categoría todavía"
-                    description="Volvé pronto o explorá otras categorías."
-                    ctaLabel="Ver todas las categorías"
-                    ctaHref="/categorias"
+                    title={t("empty_title")}
+                    description={t("empty_desc")}
+                    ctaLabel={t("empty_cta")}
+                    ctaHref={localePath(locale, "/categorias")}
                   />
                 ) : (
                   <>
-                    <SectionTitle id="cat-title">
-                      {sort === "score" ? "Top memes" : sort === "created_at" ? "Más nuevos" : "Por título"}
-                    </SectionTitle>
+                    <SectionTitle id="cat-title">{sectionTitle}</SectionTitle>
                     <MemeListingGrid
-                      memes={listing.data}
-                      ariaLabel={`Memes de ${category.name}`}
+                      memes={listingWithHref.data}
+                      ariaLabel={`${category.name} memes`}
                       priorityCount={5}
                     />
                     <Pagination
                       page={listing.pageInfo.page}
                       totalPages={listing.pageInfo.totalPages}
                       buildHref={buildPageHref}
-                      label="Paginación de memes"
+                      label={t("pagination_label")}
                     />
                   </>
                 )}
@@ -201,7 +235,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         strategy="beforeInteractive"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(
-            categoryCollectionJsonLd(category, listing.data),
+            categoryCollectionJsonLd(category, listingWithHref.data, locale),
           ),
         }}
       />
@@ -210,7 +244,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         type="application/ld+json"
         strategy="beforeInteractive"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(breadcrumbJsonLd(breadcrumbs)),
+          __html: JSON.stringify(breadcrumbJsonLd(breadcrumbs, locale)),
         }}
       />
     </>

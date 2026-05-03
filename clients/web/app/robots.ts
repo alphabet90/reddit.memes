@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { locales } from "@/i18n/routing";
 import { site } from "@/lib/site";
 
 export default function robots(): MetadataRoute.Robots {
@@ -10,7 +11,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/perfil/", "/subir/enviado"],
       },
     ],
-    sitemap: `${site.url}/sitemap.xml`,
+    sitemap: locales.map((l) => `${site.url}/${l}/sitemap.xml`),
     host: site.url,
   };
 }

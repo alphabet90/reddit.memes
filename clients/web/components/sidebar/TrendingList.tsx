@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import type { TrendingTag } from "@/lib/types";
 import { formatCompact } from "@/lib/format";
+import { localePath } from "@/lib/i18n-utils";
+import type { Locale } from "@/i18n/routing";
 import styles from "./TrendingList.module.css";
 
 function rankColor(rank: number) {
@@ -10,25 +13,31 @@ function rankColor(rank: number) {
   return "var(--color-negro-muted)";
 }
 
-export function TrendingList({ tags }: { tags: TrendingTag[] }) {
+export async function TrendingList({ tags }: { tags: TrendingTag[] }) {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations("sidebar");
+
   return (
     <div className={styles.widget}>
-      <h2 className={styles.title}>Tendencias</h2>
+      <h2 className={styles.title}>{t("trending_title")}</h2>
       <ul className={styles.list} role="list">
-        {tags.map((t, i) => (
+        {tags.map((tag, i) => (
           <li
-            key={t.tag}
+            key={tag.tag}
             className={`${styles.row} ${i < tags.length - 1 ? styles.rowBorder : ""}`.trim()}
           >
             <Link
-              href={`/buscar?q=${encodeURIComponent(t.tag.replace(/^#/, ""))}`}
+              href={localePath(
+                locale,
+                `/buscar?q=${encodeURIComponent(tag.tag.replace(/^#/, ""))}`,
+              )}
               className={styles.link}
             >
-              <span className={styles.rank} style={{ color: rankColor(t.rank) }}>
-                {t.rank}
+              <span className={styles.rank} style={{ color: rankColor(tag.rank) }}>
+                {tag.rank}
               </span>
-              <span className={styles.tag}>{t.tag}</span>
-              <span className={styles.count}>{formatCompact(t.count)}</span>
+              <span className={styles.tag}>{tag.tag}</span>
+              <span className={styles.count}>{formatCompact(tag.count)}</span>
             </Link>
           </li>
         ))}

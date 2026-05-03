@@ -1,26 +1,31 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import type { Category } from "@/lib/types";
 import { CategoryIconGlyph } from "@/components/icons";
 import { formatCompact } from "@/lib/format";
+import { localePath } from "@/lib/i18n-utils";
+import type { Locale } from "@/i18n/routing";
 import styles from "./CategoryList.module.css";
 
 type CategoryListProps = {
   categories: Category[];
-  /** Slug of the currently active category, if any */
   activeSlug?: string;
 };
 
-export function CategoryList({ categories, activeSlug }: CategoryListProps) {
+export async function CategoryList({ categories, activeSlug }: CategoryListProps) {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations("sidebar");
+
   return (
     <div className={styles.widget}>
-      <h2 className={styles.title}>Categorías</h2>
+      <h2 className={styles.title}>{t("categories_title")}</h2>
       <ul className={styles.list} role="list">
         {categories.map((c) => {
           const isActive = c.slug === activeSlug;
           return (
             <li key={c.slug}>
               <Link
-                href={`/categorias/${c.slug}`}
+                href={localePath(locale, `/categorias/${c.slug}`)}
                 className={`${styles.item} ${isActive ? styles.active : ""}`.trim()}
                 aria-current={isActive ? "page" : undefined}
               >
@@ -43,8 +48,8 @@ export function CategoryList({ categories, activeSlug }: CategoryListProps) {
           );
         })}
       </ul>
-      <Link href="/categorias" className={styles.verTodas}>
-        Ver todas
+      <Link href={localePath(locale, "/categorias")} className={styles.verTodas}>
+        {t("ver_todas")}
       </Link>
     </div>
   );

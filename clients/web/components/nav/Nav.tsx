@@ -1,21 +1,23 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Logo } from "./Logo";
 import { SearchIcon, UploadIcon, UserIcon } from "@/components/icons";
+import { localePath } from "@/lib/i18n-utils";
+import type { Locale } from "@/i18n/routing";
 import styles from "./Nav.module.css";
 
-const links = [
-  { href: "/",           label: "Memes",      active: true  },
-  { href: "/categorias", label: "Categorías", active: false },
-  { href: "/top",        label: "Top",        active: false },
-  { href: "/nuevos",     label: "Nuevos",     active: false },
-  { href: "/aleatorio",  label: "Aleatorio",  active: false },
-];
+export async function Nav() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations("nav");
 
-/**
- * Top navigation bar. Renders as <header><nav> so search engines can
- * identify the primary site navigation.
- */
-export function Nav() {
+  const links = [
+    { href: localePath(locale, "/"),           label: t("memes"),     active: true  },
+    { href: localePath(locale, "/categorias"), label: t("categorias"), active: false },
+    { href: localePath(locale, "/top"),        label: t("top"),       active: false },
+    { href: localePath(locale, "/nuevos"),     label: t("nuevos"),    active: false },
+    { href: localePath(locale, "/aleatorio"),  label: t("aleatorio"), active: false },
+  ];
+
   return (
     <header className={styles.wrap}>
       <nav aria-label="Principal" className={styles.nav}>
@@ -35,27 +37,31 @@ export function Nav() {
         </ul>
 
         <form
-          action="/buscar"
+          action={localePath(locale, "/buscar")}
           role="search"
           className={styles.search}
-          aria-label="Buscar memes"
+          aria-label={t("buscar_label")}
         >
           <SearchIcon size={14} />
           <input
             type="search"
             name="q"
-            placeholder="Buscar memes…"
-            aria-label="Buscar memes"
+            placeholder={t("buscar_placeholder")}
+            aria-label={t("buscar_label")}
             autoComplete="off"
           />
         </form>
 
-        <Link href="/subir" className={styles.cta}>
+        <Link href={localePath(locale, "/subir")} className={styles.cta}>
           <UploadIcon size={12} />
-          <span>Subí tu meme</span>
+          <span>{t("subir")}</span>
         </Link>
 
-        <Link href="/perfil" aria-label="Mi perfil" className={styles.avatar}>
+        <Link
+          href={localePath(locale, "/perfil")}
+          aria-label={t("perfil_label")}
+          className={styles.avatar}
+        >
           <UserIcon size={16} />
         </Link>
       </nav>
