@@ -6,7 +6,6 @@ import { fetchMemes } from "@/lib/api";
 import { toMeme } from "@/lib/data/memes";
 import type { LocaleCode } from "@/lib/api";
 
-export const dynamic = "force-static";
 export const revalidate = 3600;
 
 const MEME_LIMIT = 1000;
