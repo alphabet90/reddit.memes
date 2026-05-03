@@ -87,7 +87,7 @@ def _flatten_comments(children: list) -> list[dict]:
     return result
 
 
-def fetch_comment_images(post: dict, min_upvotes: int) -> list[str]:
+def fetch_comment_images(post: dict, min_upvotes: int) -> list[tuple[str, int]]:
     subreddit = post["subreddit"]
     post_id = post["id"]
     url = f"{config.REDDIT_BASE_URL}/r/{subreddit}/comments/{post_id}/.json"
@@ -100,14 +100,17 @@ def fetch_comment_images(post: dict, min_upvotes: int) -> list[str]:
         return []
 
     comments = _flatten_comments(children)
-    urls = []
+    seen: dict[str, int] = {}
     for comment in comments:
-        if comment.get("ups", 0) >= min_upvotes:
-            urls.extend(extract_image_urls_from_comment(comment))
+        comment_score = comment.get("ups", 0)
+        if comment_score >= min_upvotes:
+            for img_url in extract_image_urls_from_comment(comment):
+                if img_url not in seen:
+                    seen[img_url] = comment_score
 
-    deduped = list(dict.fromkeys(urls))
-    logger.info("Post %s: %d comment image(s) found with >= %d upvotes", post_id, len(deduped), min_upvotes)
-    return deduped
+    result = list(seen.items())
+    logger.info("Post %s: %d comment image(s) found with >= %d upvotes", post_id, len(result), min_upvotes)
+    return result
 
 
 def _to_old_reddit(url: str) -> str:

@@ -1,3 +1,4 @@
+import dataclasses
 import datetime
 import json
 import logging
@@ -122,12 +123,12 @@ def run(
             permalink=post.get("permalink", ""),
         )
 
-        for url in fetch_comment_images(post, min_comment_upvotes):
+        for url, comment_score in fetch_comment_images(post, min_comment_upvotes):
             if url in seen_in_run or tracker.is_processed(url):
                 continue
             seen_in_run.add(url)
             all_urls.append(url)
-            url_to_meta[url] = meta
+            url_to_meta[url] = dataclasses.replace(meta, score=comment_score)
 
         tracker.mark_processed(post_id)
 
