@@ -112,6 +112,11 @@ def main() -> int:
         help="Reindex SHA1 hashes of all existing memes (useful after manual additions to memes/)",
     )
     parser.add_argument(
+        "--no-dedup-content",
+        action="store_true",
+        help="Disable SHA1 content-duplicate check (re-classify images already saved as memes)",
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
@@ -171,6 +176,7 @@ def main() -> int:
         create_branch=not args.no_branch,
         locale=args.locale,
         per_post=args.per_post,
+        skip_content_dedup=args.no_dedup_content,
     )
     return 0
 
