@@ -40,6 +40,15 @@ def main() -> int:
     parser.add_argument("--repo-path", type=Path, default=None, help="Path to git repo (default: current dir)")
     parser.add_argument("--dry-run", action="store_true", help="Classify without saving or committing")
     parser.add_argument(
+        "--per-post",
+        action="store_true",
+        help=(
+            "Classify each post's images immediately after they are found, "
+            "instead of collecting all URLs first. "
+            "Git commits still fire every --batch-size memes."
+        ),
+    )
+    parser.add_argument(
         "--no-branch",
         action="store_true",
         help="Skip auto branch creation and commit directly to the current branch",
@@ -161,6 +170,7 @@ def main() -> int:
         classifier=classifier,
         create_branch=not args.no_branch,
         locale=args.locale,
+        per_post=args.per_post,
     )
     return 0
 

@@ -58,6 +58,7 @@ python main.py --subreddit argentina --reset-bloom --dry-run
 | `--min-comment-upvotes N` | `0` | Also scrape images from comments with at least N upvotes |
 | `--dry-run` | off | Classify without saving files or creating git commits |
 | `--no-branch` | off | Skip auto branch creation and commit directly to the current branch |
+| `--per-post` | off | Classify each post's images immediately instead of collecting all URLs first (see [Classification Modes](#classification-modes)) |
 
 ### State
 
@@ -103,6 +104,47 @@ To commit directly to the current branch (old behaviour), pass `--no-branch`:
 ```bash
 python main.py --subreddit argentina --no-branch
 ```
+
+---
+
+## Classification Modes
+
+The pipeline supports two modes that control when classification starts relative to post fetching.
+
+### Batch mode (default)
+
+All posts are fetched first and every image URL is collected into a single list. URLs are then split into chunks of `--batch-size` and each chunk is downloaded, classified, and committed together.
+
+```
+fetch_posts() → [post1, post2, ..., postN]
+    ↓
+collect ALL image URLs → all_urls[]
+    ↓
+chunk all_urls by --batch-size
+    ↓
+per chunk: download → classify → save/commit
+```
+
+Best when you want predictable, evenly-sized git commits and are happy to wait for all posts to be scraped before any classification starts.
+
+### Per-post mode (`--per-post`)
+
+Each post's images are downloaded and classified immediately after the post is processed. Confirmed memes accumulate in a buffer; a git commit fires once the buffer reaches `--batch-size` memes (regardless of post boundaries).
+
+```
+for each post:
+    images found → download → classify (starts immediately)
+    accumulate memes in buffer
+    when buffer ≥ --batch-size → save/commit
+flush remaining memes at the end
+```
+
+```bash
+python main.py --subreddit argentina --per-post
+python main.py --subreddit argentina --per-post --batch-size 5
+```
+
+Best when you want to see results sooner during a long scrape, or when individual posts tend to have many images.
 
 ---
 
