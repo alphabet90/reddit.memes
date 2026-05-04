@@ -20,6 +20,8 @@ public class LocaleCodeConverter implements Converter<String, LocaleCode> {
     @Nullable
     public LocaleCode convert(@Nullable String source) {
         if (source == null || source.isBlank()) return null;
-        return LocaleCode.fromValue(source.toLowerCase());
+        // BCP 47 tags like "es-ar" or "es_AR" — keep only the language subtag
+        String lang = source.toLowerCase().split("[-_]")[0];
+        return LocaleCode.fromValue(lang);
     }
 }

@@ -109,6 +109,25 @@ class MemesControllerTest {
     }
 
     @Test
+    void listMemes_acceptsBcp47RegionalLocale() throws Exception {
+        MemePage page = new MemePage();
+        page.setData(List.of());
+        page.setPage(0);
+        page.setLimit(20);
+        page.setTotal(0);
+        page.setTotalPages(0);
+        when(memeService.listMemes(anyInt(), anyInt(), any(), any(), anyString(), anyString())).thenReturn(page);
+
+        mockMvc.perform(get("/memes?locale=es-ar"))
+            .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(memeService).listMemes(
+            anyInt(), anyInt(), any(), any(), anyString(),
+            org.mockito.ArgumentMatchers.eq("es")
+        );
+    }
+
+    @Test
     void listMemes_returns200WithPagination() throws Exception {
         MemePage page = new MemePage();
         page.setData(List.of());
