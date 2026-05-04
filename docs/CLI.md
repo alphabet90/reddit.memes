@@ -59,6 +59,7 @@ python main.py --subreddit argentina --reset-bloom --dry-run
 | `--dry-run` | off | Classify without saving files or creating git commits |
 | `--no-branch` | off | Skip auto branch creation and commit directly to the current branch |
 | `--per-post` | off | Classify each post's images immediately instead of collecting all URLs first (see [Classification Modes](#classification-modes)) |
+| `--no-dedup-content` | off | Disable SHA1 content-duplicate check (re-classify images already saved as memes) |
 
 ### State
 

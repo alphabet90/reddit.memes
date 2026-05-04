@@ -79,6 +79,8 @@ def _dedup_download(
     urls: list[str],
     tracker: PostTracker,
     tmp_dir: Path,
+    *,
+    skip_content_dedup: bool = False,
 ) -> tuple[list[tuple[str, Path, str]], set[str]]:
     """Download and SHA1-dedup a list of URLs. Returns (clean_items, failed_urls)."""
     downloaded = download_batch(urls, tmp_dir, is_processed=tracker.is_processed)
@@ -87,7 +89,7 @@ def _dedup_download(
     clean: list[tuple[str, Path, str]] = []
     for url, path in downloaded:
         sha1 = compute_file_sha1(path)
-        if tracker.is_content_processed(sha1):
+        if not skip_content_dedup and tracker.is_content_processed(sha1):
             logger.info("Skipping content duplicate (sha1=%s...): %s", sha1[:8], url)
             tracker.mark_processed(url)
             path.unlink(missing_ok=True)
@@ -179,6 +181,7 @@ def _run_batch(
     repo_path: Path,
     tmp_dir: Path,
     locale: str,
+    skip_content_dedup: bool = False,
 ) -> int:
     all_urls: list[str] = []
     seen_in_run: set[str] = set()
@@ -210,7 +213,9 @@ def _run_batch(
     for batch_num, batch_urls in enumerate(_chunks(all_urls, batch_size), start=1):
         logger.info("--- Batch %d: %d URLs ---", batch_num, len(batch_urls))
 
-        clean_downloaded, failed_urls = _dedup_download(batch_urls, tracker, tmp_dir)
+        clean_downloaded, failed_urls = _dedup_download(
+            batch_urls, tracker, tmp_dir, skip_content_dedup=skip_content_dedup
+        )
         for url in failed_urls:
             tracker.mark_processed(url)
         tracker.flush()
@@ -275,6 +280,7 @@ def _run_per_post(
     repo_path: Path,
     tmp_dir: Path,
     locale: str,
+    skip_content_dedup: bool = False,
 ) -> int:
     seen_in_run: set[str] = set()
     url_to_meta: dict[str, PostMetadata] = {}
@@ -308,7 +314,9 @@ def _run_per_post(
 
         logger.info("Post %s > %d image(s) found > starting classification", post_id, len(post_urls))
 
-        clean_downloaded, failed_urls = _dedup_download(post_urls, tracker, tmp_dir)
+        clean_downloaded, failed_urls = _dedup_download(
+            post_urls, tracker, tmp_dir, skip_content_dedup=skip_content_dedup
+        )
         for url in failed_urls:
             tracker.mark_processed(url)
         tracker.flush()
@@ -419,6 +427,7 @@ def run(
     create_branch: bool = True,
     locale: str = "en",
     per_post: bool = False,
+    skip_content_dedup: bool = False,
 ) -> None:
     tracker = _build_tracker()
     _index_existing_memes(tracker, repo_path, force=rebuild_content_index)
@@ -456,6 +465,7 @@ def run(
         repo_path=repo_path,
         tmp_dir=tmp_dir,
         locale=locale,
+        skip_content_dedup=skip_content_dedup,
     )
 
     if per_post:
